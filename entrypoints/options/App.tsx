@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import { getConfig, updateConfig, type ChannelOverride, type SpeedMasterConfig } from '@/src/shared/config';
+import { t } from '@/src/shared/i18n';
 
 const SPEED_STEP = 0.1;
 const SPEED_MIN = 0.1;
@@ -117,20 +118,20 @@ function App() {
             <span className="brand__play" />
           </div>
           <div className="brand__text">
-            <div className="brand__title">bilibili Speed Master</div>
+            <div className="brand__title">{t('appTitle')}</div>
             <a
               className="brand__subtitle"
               href="https://x.com/cholf5"
               target="_blank"
               rel="noreferrer"
             >
-              Made by cholf5
+              {t('madeBy')}
             </a>
           </div>
         </div>
         <div className="header__actions">
           <div className="rating">
-            <span>Rate me:</span>
+            <span>{t('rateMe')}:</span>
             <span className="rating__stars" aria-hidden="true">
               &#9733;&#9733;&#9733;&#9733;&#9733;
             </span>
@@ -141,18 +142,20 @@ function App() {
             target="_blank"
             rel="noreferrer"
           >
-            Donate
+            {t('donate')}
           </a>
         </div>
       </header>
 
       <section className="summary">
         <div className="card">
-          <div className="card__label">Total Time Saved</div>
-          <div className="card__value">{hoursSaved} hours</div>
+          <div className="card__label">{t('totalTimeSaved')}</div>
+          <div className="card__value">
+            {hoursSaved} {t('hours')}
+          </div>
         </div>
         <div className="card">
-          <div className="card__label">Default Speed</div>
+          <div className="card__label">{t('defaultSpeed')}</div>
           <div className="stepper">
             <button
               type="button"
@@ -172,7 +175,7 @@ function App() {
           </div>
         </div>
         <div className="card">
-          <div className="card__label">Preferred Quality</div>
+          <div className="card__label">{t('preferredQuality')}</div>
           <select
             className="select"
             value={preferredQuality}
@@ -189,13 +192,13 @@ function App() {
 
       <section className="table">
         <div className="table__header">
-          <div>Channel</div>
-          <div>Last Visit</div>
-          <div>Speed</div>
+          <div>{t('channel')}</div>
+          <div>{t('lastVisit')}</div>
+          <div>{t('speed')}</div>
         </div>
         <div className="table__body">
           {sortedChannels.length === 0 ? (
-            <div className="table__empty">No channel overrides yet.</div>
+            <div className="table__empty">{t('noOverrides')}</div>
           ) : (
             sortedChannels.map((channel) => (
               <div className="table__row" key={channel.channelId}>

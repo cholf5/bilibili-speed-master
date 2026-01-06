@@ -1,6 +1,7 @@
 import './App.css';
 import { useEffect, useMemo, useState } from 'react';
 import { getConfig, updateConfig, type SpeedMasterConfig } from '@/src/shared/config';
+import { t } from '@/src/shared/i18n';
 
 const SPEED_STEP = 0.1;
 const SPEED_MIN = 0.1;
@@ -81,14 +82,14 @@ function App() {
             <span className="brand__play" />
           </div>
           <div className="brand__text">
-            <div className="brand__title">bilibili Speed Master</div>
+            <div className="brand__title">{t('appTitle')}</div>
             <a
               className="brand__subtitle"
               href="https://x.com/cholf5"
               target="_blank"
               rel="noreferrer"
             >
-              Made by cholf5
+              {t('madeBy')}
             </a>
           </div>
         </div>
@@ -98,13 +99,13 @@ function App() {
           target="_blank"
           rel="noreferrer"
         >
-          Donate
+          {t('donate')}
         </a>
       </header>
 
       <section className="panel">
         <div className="row">
-          <div className="row__label">Current Speed</div>
+          <div className="row__label">{t('currentSpeed')}</div>
           <div className="stepper stepper--disabled" aria-disabled="true">
             <button type="button" disabled aria-label="Decrease speed">
               -
@@ -116,7 +117,7 @@ function App() {
           </div>
         </div>
         <div className="row">
-          <div className="row__label">Default Speed</div>
+          <div className="row__label">{t('defaultSpeed')}</div>
           <div className="stepper">
             <button
               type="button"
@@ -136,7 +137,7 @@ function App() {
           </div>
         </div>
         <div className="row">
-          <div className="row__label">Preferred Quality</div>
+          <div className="row__label">{t('preferredQuality')}</div>
           <select
             className="select"
             value={preferredQuality}
@@ -152,8 +153,10 @@ function App() {
       </section>
 
       <section className="stats">
-        <span>Total time saved:</span>
-        <strong>{hoursSaved} hours</strong>
+        <span>{t('totalTimeSaved')}:</span>
+        <strong>
+          {hoursSaved} {t('hours')}
+        </strong>
       </section>
 
       <section className="rating" aria-label="Rating">
@@ -166,7 +169,7 @@ function App() {
 
       <button className="options-button" type="button" onClick={openOptions}>
         <span className="options-button__icon" aria-hidden="true" />
-        More Options
+        {t('moreOptions')}
       </button>
     </div>
   );
