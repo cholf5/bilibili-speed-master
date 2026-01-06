@@ -18,10 +18,21 @@ type ChannelInfo = {
 };
 
 const getChannelInfo = (): ChannelInfo | null => {
-  const link = document.querySelector<HTMLAnchorElement>(
-    'a[href*="//space.bilibili.com/"], a[href^="https://space.bilibili.com/"], a[href^="http://space.bilibili.com/"]',
-  );
+  const root = globalThis as typeof globalThis & {
+    __INITIAL_STATE__?: any;
+  };
+  const owner = root.__INITIAL_STATE__?.videoData?.owner;
+  if (owner?.mid) {
+    return {
+      channelId: String(owner.mid),
+      channelName: owner.name || 'Unknown',
+      avatarUrl: owner.face || undefined,
+    };
+  }
 
+  const link = document.querySelector<HTMLAnchorElement>(
+    'a[href*="space.bilibili.com/"]',
+  );
   if (!link) {
     return null;
   }
@@ -32,8 +43,13 @@ const getChannelInfo = (): ChannelInfo | null => {
     return null;
   }
 
-  const channelName = link.textContent?.trim() || 'Unknown';
-  const avatar = link.querySelector('img')?.getAttribute('src') ?? undefined;
+  const upName =
+    document.querySelector('.up-info .up-name, .up-info__name, .up-name')?.textContent?.trim();
+  const channelName = upName || link.textContent?.trim() || 'Unknown';
+  const avatar =
+    document
+      .querySelector('.up-info img, .up-info__avatar img, .up-info__face img')
+      ?.getAttribute('src') ?? undefined;
 
   return {
     channelId: match[1],
@@ -265,6 +281,7 @@ export default defineContentScript({
         activeVideo.removeEventListener('ratechange', handleRateChange);
         activeVideo.removeEventListener('loadedmetadata', handleVideoMetadata);
         activeVideo.removeEventListener('play', handleVideoMetadata);
+        activeVideo.removeEventListener('emptied', handleVideoMetadata);
         activeVideo.removeEventListener('timeupdate', handleTimeUpdate);
         void flushTimeSaved();
       }
@@ -275,6 +292,7 @@ export default defineContentScript({
       activeVideo.addEventListener('ratechange', handleRateChange);
       activeVideo.addEventListener('loadedmetadata', handleVideoMetadata);
       activeVideo.addEventListener('play', handleVideoMetadata);
+      activeVideo.addEventListener('emptied', handleVideoMetadata);
       activeVideo.addEventListener('timeupdate', handleTimeUpdate);
       void applySpeedForVideo(activeVideo);
     };
@@ -460,6 +478,31 @@ export default defineContentScript({
 
     window.addEventListener('keydown', handleKeydown);
 
+    const hookHistory = () => {
+      const history = window.history as History & {
+        _speedMasterPatched?: boolean;
+      };
+      if (history._speedMasterPatched) {
+        return;
+      }
+      history._speedMasterPatched = true;
+
+      const wrap = (method: 'pushState' | 'replaceState') => {
+        const original = history[method];
+        history[method] = function (...args: Parameters<History['pushState']>) {
+          const result = original.apply(this, args);
+          handleNavigationChange();
+          return result;
+        };
+      };
+
+      wrap('pushState');
+      wrap('replaceState');
+    };
+
+    hookHistory();
+    window.addEventListener('popstate', handleNavigationChange);
+
     urlPoller = window.setInterval(() => {
       if (location.href !== lastUrl) {
         lastUrl = location.href;
@@ -469,6 +512,7 @@ export default defineContentScript({
 
     window.addEventListener('beforeunload', () => {
       window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('popstate', handleNavigationChange);
       if (urlPoller !== null) {
         window.clearInterval(urlPoller);
         urlPoller = null;
