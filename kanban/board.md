@@ -1,7 +1,6 @@
 ﻿# Kanban Board
 
 ## Backlog
-- A-10 Track and display time saved stats
 
 ## To Do
 - 
@@ -28,3 +27,4 @@
 - A-7 Implement keyboard shortcuts
 - A-8 Add i18n scaffolding and strings
 - A-9 Add import/export settings
+- A-10 Track and display time saved stats

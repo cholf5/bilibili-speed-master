@@ -9,7 +9,7 @@ Track cumulative time saved based on playback speed and display it in popup and 
 - Display time saved in popup and options summary
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 M
@@ -26,13 +26,14 @@ M
 ## Related Documents/Designs
 - `docs/popup.md`
 - `docs/options.md`
+- `docs/time-saved.md`
 
 ## Dependent Tasks
 - A-2 Define storage schema and config service
 - A-3 Implement content script speed control
 
 ## Notes / Issues / Resolutions
-- 
+- Time saved is calculated on `timeupdate` and flushed periodically to storage.
 
 ## Review Comments
 - 

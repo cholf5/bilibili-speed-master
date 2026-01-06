@@ -9,6 +9,7 @@ const SEEK_STEP_SMALL = 5;
 const SEEK_STEP_LARGE = 10;
 const VOLUME_STEP = 0.05;
 const FRAME_STEP = 1 / 30;
+const TIME_SAVE_FLUSH_MS = 3000;
 
 type ChannelInfo = {
   channelId: string;
@@ -126,6 +127,10 @@ export default defineContentScript({
     let applyTimer: number | null = null;
     let lastUrl = location.href;
     let urlPoller: number | null = null;
+    let lastPlaybackTime = 0;
+    let lastPlaybackRate = 1;
+    let timeSavedBuffer = 0;
+    let timeSaveTimer: number | null = null;
 
     const clearApplyTimer = () => {
       if (applyTimer !== null) {
@@ -147,6 +152,8 @@ export default defineContentScript({
       if (!activeVideo || applying) {
         return;
       }
+
+      lastPlaybackRate = activeVideo.playbackRate;
 
       const channel = getChannelInfo();
       if (!channel) {
@@ -201,6 +208,48 @@ export default defineContentScript({
       }
     };
 
+    const flushTimeSaved = async () => {
+      if (timeSavedBuffer <= 0) {
+        return;
+      }
+      const delta = timeSavedBuffer;
+      timeSavedBuffer = 0;
+      await updateConfig((current) => ({
+        ...current,
+        stats: {
+          ...current.stats,
+          timeSavedSeconds: current.stats.timeSavedSeconds + delta,
+        },
+      }));
+    };
+
+    const scheduleTimeSaveFlush = () => {
+      if (timeSaveTimer !== null) {
+        return;
+      }
+      timeSaveTimer = window.setTimeout(async () => {
+        timeSaveTimer = null;
+        await flushTimeSaved();
+      }, TIME_SAVE_FLUSH_MS);
+    };
+
+    const handleTimeUpdate = () => {
+      if (!activeVideo) {
+        return;
+      }
+      const currentTime = activeVideo.currentTime;
+      const delta = currentTime - lastPlaybackTime;
+      lastPlaybackTime = currentTime;
+
+      if (delta <= 0 || lastPlaybackRate <= 1) {
+        return;
+      }
+
+      const saved = (delta * (lastPlaybackRate - 1)) / lastPlaybackRate;
+      timeSavedBuffer += saved;
+      scheduleTimeSaveFlush();
+    };
+
     const handleNavigationChange = () => {
       if (activeVideo) {
         void applySpeedForVideo(activeVideo);
@@ -216,12 +265,17 @@ export default defineContentScript({
         activeVideo.removeEventListener('ratechange', handleRateChange);
         activeVideo.removeEventListener('loadedmetadata', handleVideoMetadata);
         activeVideo.removeEventListener('play', handleVideoMetadata);
+        activeVideo.removeEventListener('timeupdate', handleTimeUpdate);
+        void flushTimeSaved();
       }
 
       activeVideo = video;
+      lastPlaybackTime = activeVideo.currentTime;
+      lastPlaybackRate = activeVideo.playbackRate;
       activeVideo.addEventListener('ratechange', handleRateChange);
       activeVideo.addEventListener('loadedmetadata', handleVideoMetadata);
       activeVideo.addEventListener('play', handleVideoMetadata);
+      activeVideo.addEventListener('timeupdate', handleTimeUpdate);
       void applySpeedForVideo(activeVideo);
     };
 
@@ -419,6 +473,7 @@ export default defineContentScript({
         window.clearInterval(urlPoller);
         urlPoller = null;
       }
+      void flushTimeSaved();
     });
   },
 });
