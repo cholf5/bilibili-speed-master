@@ -4,7 +4,11 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    permissions: ['storage'],
+    permissions: ['storage', 'tabs'],
     host_permissions: ['*://*.bilibili.com/*'],
+    options_ui: {
+      page: 'options.html',
+      open_in_tab: true,
+    },
   },
 });

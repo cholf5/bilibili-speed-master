@@ -14,3 +14,6 @@ This document summarizes how the options page UI maps to config data.
 ## Display Rules
 - `Last Visit` is rendered as `YYYY-MM-DD HH:MM:SS` from ISO timestamps.
 - When there are no overrides, a placeholder row is shown.
+
+## Page Behavior
+- Options open in a dedicated tab via `options_ui.open_in_tab` in `wxt.config.ts`.

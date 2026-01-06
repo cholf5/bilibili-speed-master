@@ -66,6 +66,20 @@ function App() {
       (globalThis as typeof globalThis & { browser?: any; chrome?: any }).chrome
         ?.runtime;
 
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const tabsApi = root.browser?.tabs ?? root.chrome?.tabs ?? null;
+    const url = runtime?.getURL?.('options.html');
+
+    if (tabsApi?.create && url) {
+      tabsApi.create({ url });
+      return;
+    }
+
+    if (url) {
+      window.open(url, '_blank');
+      return;
+    }
+
     runtime?.openOptionsPage?.();
   };
 
