@@ -57,6 +57,51 @@ function App() {
     setConfig(next);
   };
 
+  const exportConfig = async () => {
+    const current = await getConfig();
+    const blob = new Blob([JSON.stringify(current, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bilibili-speed-master-config.json';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importConfig = async (file: File) => {
+    const text = await file.text();
+    const raw = JSON.parse(text);
+    if (!raw || typeof raw !== 'object' || raw.version !== 1) {
+      throw new Error('invalid');
+    }
+
+    const next = await updateConfig(() => raw as SpeedMasterConfig);
+    setConfig(next);
+  };
+
+  const handleImportClick = async () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) {
+        return;
+      }
+      try {
+        if (!window.confirm('Import settings and overwrite current configuration?')) {
+          return;
+        }
+        await importConfig(file);
+      } catch {
+        window.alert('Invalid configuration file.');
+      }
+    };
+    input.click();
+  };
+
   const changeDefaultSpeed = (delta: number) => {
     if (!config) {
       return;
@@ -254,6 +299,15 @@ function App() {
             ))
           )}
         </div>
+      </section>
+
+      <section className="transfer">
+        <button type="button" className="transfer__button" onClick={exportConfig}>
+          {t('export')}
+        </button>
+        <button type="button" className="transfer__button" onClick={handleImportClick}>
+          {t('import')}
+        </button>
       </section>
     </div>
   );

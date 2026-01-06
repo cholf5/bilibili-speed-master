@@ -36,3 +36,4 @@ Use the helpers in `src/shared/config.ts`:
 ## Notes
 - All schema changes should bump `version` and add migration logic.
 - Prefer adding new fields with safe defaults to keep backward compatibility.
+- Import/export features rely on `version === 1` and replace the full config object.

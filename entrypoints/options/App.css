@@ -237,6 +237,22 @@
   font-size: 13px;
 }
 
+.transfer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.transfer__button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  background: #2b2d31;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
 @media (max-width: 720px) {
   .options__header {
     flex-direction: column;

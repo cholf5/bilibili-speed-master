@@ -15,6 +15,8 @@ const en: Messages = {
   lastVisit: 'Last Visit',
   speed: 'Speed',
   noOverrides: 'No channel overrides yet.',
+  export: 'Export Settings',
+  import: 'Import Settings',
 };
 
 type Locale = 'en';

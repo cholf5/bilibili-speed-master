@@ -9,7 +9,7 @@ Provide import and export for user settings to support backup and migration.
 - Handle schema versioning on import
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 M
@@ -26,13 +26,14 @@ M
 
 ## Related Documents/Designs
 - `docs/spec.md`
+- `docs/import-export.md`
 
 ## Dependent Tasks
 - A-2 Define storage schema and config service
 - A-6 Build options UI and channel table
 
 ## Notes / Issues / Resolutions
-- 
+- Added import/export controls on the options page with version validation.
 
 ## Review Comments
 - 
