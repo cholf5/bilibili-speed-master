@@ -1,4 +1,4 @@
-import { getConfig, updateConfig } from '@/src/shared/config';
+import { getConfig, updateConfig, STORAGE_KEY } from '@/src/shared/config';
 
 const SPEED_APPLY_GRACE_MS = 150;
 const URL_POLL_INTERVAL_MS = 800;
@@ -141,6 +141,8 @@ export default defineContentScript({
     let activeVideo: HTMLVideoElement | null = null;
     let applying = false;
     let applyTimer: number | null = null;
+    let programmaticRate: number | null = null;
+    let programmaticRateTimer: number | null = null;
     let lastUrl = location.href;
     let urlPoller: number | null = null;
     let lastPlaybackTime = 0;
@@ -153,6 +155,14 @@ export default defineContentScript({
         window.clearTimeout(applyTimer);
         applyTimer = null;
       }
+    };
+
+    const clearProgrammaticRate = () => {
+      if (programmaticRateTimer !== null) {
+        window.clearTimeout(programmaticRateTimer);
+        programmaticRateTimer = null;
+      }
+      programmaticRate = null;
     };
 
     const markApplying = () => {
@@ -170,6 +180,14 @@ export default defineContentScript({
       }
 
       lastPlaybackRate = activeVideo.playbackRate;
+
+      if (
+        programmaticRate !== null &&
+        Math.abs(activeVideo.playbackRate - programmaticRate) < 0.001
+      ) {
+        clearProgrammaticRate();
+        return;
+      }
 
       const channel = getChannelInfo();
       if (!channel) {
@@ -200,6 +218,13 @@ export default defineContentScript({
       const targetSpeed = channelOverride?.speed ?? config.global.defaultSpeed;
 
       markApplying();
+      programmaticRate = targetSpeed;
+      if (programmaticRateTimer !== null) {
+        window.clearTimeout(programmaticRateTimer);
+      }
+      programmaticRateTimer = window.setTimeout(() => {
+        clearProgrammaticRate();
+      }, 1000);
       applyPlaybackRate(video, targetSpeed);
 
       if (channelOverride && channel?.channelId) {
@@ -477,6 +502,25 @@ export default defineContentScript({
     }
 
     window.addEventListener('keydown', handleKeydown);
+
+    const storageOnChanged = (() => {
+      const root = globalThis as typeof globalThis & {
+        browser?: { storage?: { onChanged?: { addListener: Function } } };
+        chrome?: { storage?: { onChanged?: { addListener: Function } } };
+      };
+      return root.browser?.storage?.onChanged ?? root.chrome?.storage?.onChanged ?? null;
+    })();
+
+    if (storageOnChanged) {
+      storageOnChanged.addListener((changes: Record<string, any>, areaName: string) => {
+        if (areaName !== 'sync' || !changes?.[STORAGE_KEY]) {
+          return;
+        }
+        if (activeVideo) {
+          void applySpeedForVideo(activeVideo);
+        }
+      });
+    }
 
     const hookHistory = () => {
       const history = window.history as History & {
