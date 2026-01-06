@@ -9,7 +9,7 @@ Apply playback speed rules on Bilibili video pages and capture user-driven speed
 - Listen for speed changes from UI controls and update storage
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 M

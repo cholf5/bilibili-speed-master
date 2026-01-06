@@ -9,7 +9,7 @@ Define and implement the storage schema for global defaults, per-channel overrid
 - Document schema keys and expected types
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 M
