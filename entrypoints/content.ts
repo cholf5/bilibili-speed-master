@@ -304,6 +304,7 @@ export default defineContentScript({
 
       if (activeVideo) {
         activeVideo.removeEventListener('ratechange', handleRateChange);
+        activeVideo.removeEventListener('ratechange', notifyPorts);
         activeVideo.removeEventListener('loadedmetadata', handleVideoMetadata);
         activeVideo.removeEventListener('play', handleVideoMetadata);
         activeVideo.removeEventListener('emptied', handleVideoMetadata);
@@ -315,11 +316,13 @@ export default defineContentScript({
       lastPlaybackTime = activeVideo.currentTime;
       lastPlaybackRate = activeVideo.playbackRate;
       activeVideo.addEventListener('ratechange', handleRateChange);
+      activeVideo.addEventListener('ratechange', notifyPorts);
       activeVideo.addEventListener('loadedmetadata', handleVideoMetadata);
       activeVideo.addEventListener('play', handleVideoMetadata);
       activeVideo.addEventListener('emptied', handleVideoMetadata);
       activeVideo.addEventListener('timeupdate', handleTimeUpdate);
       void applySpeedForVideo(activeVideo);
+      notifyPorts();
     };
 
     const observer = new MutationObserver(() => {
@@ -328,6 +331,62 @@ export default defineContentScript({
         attachVideo(video);
       }
     });
+
+    const runtimeOnMessage = (() => {
+      const root = globalThis as typeof globalThis & {
+        browser?: { runtime?: { onMessage?: { addListener: Function } } };
+        chrome?: { runtime?: { onMessage?: { addListener: Function } } };
+      };
+      return root.browser?.runtime?.onMessage ?? root.chrome?.runtime?.onMessage ?? null;
+    })();
+
+    if (runtimeOnMessage) {
+      runtimeOnMessage.addListener((message: any, _sender: any, sendResponse: any) => {
+        if (message?.type === 'speed-master:get-current-speed') {
+          sendResponse({ speed: activeVideo?.playbackRate ?? null });
+        }
+      });
+    }
+
+    const connectedPorts = new Set<any>();
+
+    const notifyPorts = () => {
+      for (const port of connectedPorts) {
+        port.postMessage({
+          type: 'speed-master:current-speed',
+          speed: activeVideo?.playbackRate ?? null,
+        });
+      }
+    };
+
+    const runtimeOnConnect = (() => {
+      const root = globalThis as typeof globalThis & {
+        browser?: { runtime?: { onConnect?: { addListener: Function } } };
+        chrome?: { runtime?: { onConnect?: { addListener: Function } } };
+      };
+      return root.browser?.runtime?.onConnect ?? root.chrome?.runtime?.onConnect ?? null;
+    })();
+
+    if (runtimeOnConnect) {
+      runtimeOnConnect.addListener((port: any) => {
+        if (port?.name !== 'speed-master:popup') {
+          return;
+        }
+
+        port.onMessage.addListener((message: any) => {
+          if (message?.type === 'speed-master:request-current-speed') {
+            notifyPorts();
+          }
+        });
+
+        connectedPorts.add(port);
+        notifyPorts();
+
+        port.onDisconnect.addListener(() => {
+          connectedPorts.delete(port);
+        });
+      });
+    }
 
     const isEditableTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) {

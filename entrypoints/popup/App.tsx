@@ -1,5 +1,5 @@
 import './App.css';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { getConfig, updateConfig, type SpeedMasterConfig } from '@/src/shared/config';
 import { t } from '@/src/shared/i18n';
 
@@ -11,8 +11,8 @@ const clampSpeed = (value: number) =>
   Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(value * 10) / 10));
 
 const formatSpeed = (value: number) => {
-  const rounded = Math.round(value * 10) / 10;
-  return Number(rounded.toFixed(1)).toString();
+  const rounded = Math.round(value * 100) / 100;
+  return Number(rounded.toFixed(2)).toString();
 };
 
 const QUALITY_OPTIONS = [
@@ -25,6 +25,8 @@ const QUALITY_OPTIONS = [
 
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
+  const [currentSpeed, setCurrentSpeed] = useState<number | null>(null);
+  const portRef = useRef<any>(null);
 
   useEffect(() => {
     getConfig().then(setConfig);
@@ -83,7 +85,74 @@ function App() {
     runtime?.openOptionsPage?.();
   };
 
-  const currentSpeed = config?.global.defaultSpeed ?? 1;
+  const fetchCurrentSpeed = async () => {
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const tabsApi = root.browser?.tabs ?? root.chrome?.tabs ?? null;
+    if (!tabsApi?.query || !tabsApi?.sendMessage) {
+      return;
+    }
+
+    try {
+      const tabs = await tabsApi.query({ active: true, currentWindow: true });
+      const tabId = tabs?.[0]?.id;
+      if (!tabId) {
+        return;
+      }
+      const response = await tabsApi.sendMessage(tabId, {
+        type: 'speed-master:get-current-speed',
+      });
+      if (response && typeof response.speed === 'number') {
+        setCurrentSpeed(response.speed);
+      }
+    } catch {
+      // Ignore if content script is not available.
+    }
+  };
+
+  useEffect(() => {
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const tabsApi = root.browser?.tabs ?? root.chrome?.tabs ?? null;
+    if (!tabsApi?.query || !tabsApi?.connect) {
+      void fetchCurrentSpeed();
+      return;
+    }
+
+    const connect = async () => {
+      try {
+        const tabs = await tabsApi.query({ active: true, currentWindow: true });
+        const tabId = tabs?.[0]?.id;
+        if (!tabId) {
+          return;
+        }
+
+        const port = tabsApi.connect(tabId, { name: 'speed-master:popup' });
+        portRef.current = port;
+
+        port.onMessage.addListener((message: any) => {
+          if (message?.type === 'speed-master:current-speed') {
+            if (typeof message.speed === 'number') {
+              setCurrentSpeed(message.speed);
+            }
+          }
+        });
+
+        port.postMessage({ type: 'speed-master:request-current-speed' });
+      } catch {
+        void fetchCurrentSpeed();
+      }
+    };
+
+    void connect();
+
+    return () => {
+      if (portRef.current) {
+        portRef.current.disconnect();
+        portRef.current = null;
+      }
+    };
+  }, []);
+
+  const displayedCurrentSpeed = currentSpeed ?? config?.global.defaultSpeed ?? 1;
   const defaultSpeed = config?.global.defaultSpeed ?? 1;
   const preferredQuality = config?.global.preferredQuality ?? 'auto';
 
@@ -124,7 +193,7 @@ function App() {
             <button type="button" disabled aria-label="Decrease speed">
               -
             </button>
-            <span>{formatSpeed(currentSpeed)}</span>
+            <span>{formatSpeed(displayedCurrentSpeed)}</span>
             <button type="button" disabled aria-label="Increase speed">
               +
             </button>

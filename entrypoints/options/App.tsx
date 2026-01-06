@@ -19,8 +19,8 @@ const clampSpeed = (value: number) =>
   Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(value * 10) / 10));
 
 const formatSpeed = (value: number) => {
-  const rounded = Math.round(value * 10) / 10;
-  return Number(rounded.toFixed(1)).toString();
+  const rounded = Math.round(value * 100) / 100;
+  return Number(rounded.toFixed(2)).toString();
 };
 
 const formatTimestamp = (value?: string) => {
