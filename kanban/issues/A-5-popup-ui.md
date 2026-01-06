@@ -9,7 +9,7 @@ Implement the popup UI per design and wire controls to the config state.
 - Link the options button to the options page
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 M
@@ -25,13 +25,14 @@ M
 
 ## Related Documents/Designs
 - `docs/popup.md`
+- `docs/popup-implementation.md`
 
 ## Dependent Tasks
 - A-2 Define storage schema and config service
 - A-10 Track and display time saved stats
 
 ## Notes / Issues / Resolutions
-- 
+- Current speed display reflects the stored default speed; live player state is not exposed to the popup yet.
 
 ## Review Comments
 - 
