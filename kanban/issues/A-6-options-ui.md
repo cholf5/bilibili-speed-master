@@ -9,7 +9,7 @@ Implement the options page UI with summary cards and a channel override table.
 - Render a channel table with edit/delete controls
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 L
@@ -25,13 +25,14 @@ L
 
 ## Related Documents/Designs
 - `docs/options.md`
+- `docs/options-implementation.md`
 
 ## Dependent Tasks
 - A-2 Define storage schema and config service
 - A-10 Track and display time saved stats
 
 ## Notes / Issues / Resolutions
-- 
+- Options page uses storage helpers for defaults and channel overrides.
 
 ## Review Comments
 - 
