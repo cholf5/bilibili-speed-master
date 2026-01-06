@@ -57,3 +57,9 @@ Unified Kanban Columns (Project Level):
 Kanban data is recorded in the `./kanban/` directory (Markdown format).
 - `./kanban/board.md` maintains the Kanban board status.
 - The `./kanban/issues/` directory stores detailed Markdown descriptions of each task. Each task has a file named with the task ID, such as `A-1-initialize-repo.md`. This file should not only record the task description, but also issues encountered during development and their solutions, bug records, and review comments.
+
+# MCP Servers
+
+This project uses Chrome DevTools MCP for debugging and live reloading during development.
+
+You should use it when you need to debug the extension's background script or content script.

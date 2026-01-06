@@ -9,7 +9,7 @@ Detect Bilibili SPA URL changes and autoplay transitions so speed rules reapply 
 - Reapply speed rules on each new video
 
 ## Developer
-TBD
+Codex
 
 ## Estimated Complexity
 M

@@ -1,6 +1,7 @@
 import { getConfig, updateConfig } from '@/src/shared/config';
 
 const SPEED_APPLY_GRACE_MS = 150;
+const URL_POLL_INTERVAL_MS = 800;
 
 type ChannelInfo = {
   channelId: string;
@@ -52,6 +53,8 @@ export default defineContentScript({
     let activeVideo: HTMLVideoElement | null = null;
     let applying = false;
     let applyTimer: number | null = null;
+    let lastUrl = location.href;
+    let urlPoller: number | null = null;
 
     const clearApplyTimer = () => {
       if (applyTimer !== null) {
@@ -121,6 +124,18 @@ export default defineContentScript({
       }
     };
 
+    const handleVideoMetadata = () => {
+      if (activeVideo) {
+        void applySpeedForVideo(activeVideo);
+      }
+    };
+
+    const handleNavigationChange = () => {
+      if (activeVideo) {
+        void applySpeedForVideo(activeVideo);
+      }
+    };
+
     const attachVideo = (video: HTMLVideoElement) => {
       if (activeVideo === video) {
         return;
@@ -128,10 +143,14 @@ export default defineContentScript({
 
       if (activeVideo) {
         activeVideo.removeEventListener('ratechange', handleRateChange);
+        activeVideo.removeEventListener('loadedmetadata', handleVideoMetadata);
+        activeVideo.removeEventListener('play', handleVideoMetadata);
       }
 
       activeVideo = video;
       activeVideo.addEventListener('ratechange', handleRateChange);
+      activeVideo.addEventListener('loadedmetadata', handleVideoMetadata);
+      activeVideo.addEventListener('play', handleVideoMetadata);
       void applySpeedForVideo(activeVideo);
     };
 
@@ -151,5 +170,19 @@ export default defineContentScript({
     if (initialVideo) {
       attachVideo(initialVideo);
     }
+
+    urlPoller = window.setInterval(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        handleNavigationChange();
+      }
+    }, URL_POLL_INTERVAL_MS);
+
+    window.addEventListener('beforeunload', () => {
+      if (urlPoller !== null) {
+        window.clearInterval(urlPoller);
+        urlPoller = null;
+      }
+    });
   },
 });
