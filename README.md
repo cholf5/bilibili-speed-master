@@ -1,6 +1,18 @@
-# Bilibili Speed Master
+<p align="center">
+  <img src="public/icon/512.png" width="120" alt="Bilibili Speed Master Logo" />
+</p>
 
-💨 **让 B 站视频倍速管理从此轻松无烦恼！**
+<h1 align="center">哔哩哔哩倍速大师</h1>
+
+<p align="center">
+  💨 让 B 站视频倍速管理从此轻松无烦恼！
+</p>
+
+<p align="center">
+  <a href="https://chrome.google.com/webstore/detail/..."><img src="https://img.shields.io/badge/Chrome-Install-brightgreen" alt="Chrome 安装" /></a>
+  <a href="https://addons.mozilla.org/firefox/addon/..."><img src="https://img.shields.io/badge/Firefox-Install-orange" alt="Firefox 安装" /></a>
+  <img src="https://img.shields.io/badge/License-MPL--2.0-blue" alt="License MPL-2.0" />
+</p>
 
 每次进入 B 站视频都要手动调倍速？不同频道想要不同速度？  
 **Bilibili Speed Master** 记住你的全局和频道偏好，只需调一次，之后自动生效。  
