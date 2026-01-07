@@ -20,7 +20,7 @@ const en: Messages = {
 };
 
 const zhCN: Messages = {
-  appTitle: '哔哩哔哩倍速助手',
+  appTitle: '哔哩哔哩倍速大师',
   madeBy: '作者：cholf5',
   donate: '赞助',
   currentSpeed: '当前倍速',
@@ -39,7 +39,7 @@ const zhCN: Messages = {
 };
 
 const zhTW: Messages = {
-  appTitle: '嗶哩嗶哩倍速助手',
+  appTitle: '嗶哩嗶哩倍速大师',
   madeBy: '作者：cholf5',
   donate: '贊助',
   currentSpeed: '目前倍速',
