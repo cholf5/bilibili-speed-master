@@ -1,7 +1,7 @@
 type Messages = Record<string, string>;
 
 const en: Messages = {
-  appTitle: 'bilibili Speed Master',
+  appTitle: 'Bilibili Speed Master',
   madeBy: 'Made by cholf5',
   donate: 'Donate',
   currentSpeed: 'Current Speed',

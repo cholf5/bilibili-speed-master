@@ -35,7 +35,7 @@ Below is a structured UI reverse-engineering description based on the provided s
 
 * **Title**
 
-  * Text: `bilibili Speed Master`
+  * Text: `Bilibili Speed Master`
   * Position: To the right of logo, horizontally aligned
   * Color: White
   * Font weight: Medium to bold

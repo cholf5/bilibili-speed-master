@@ -1,4 +1,4 @@
-这是一个浏览器插件：bilibili Speed Master
+这是一个浏览器插件：Bilibili Speed Master
 
 该插件的功能是：可以给B站的视频设置一个全局默认播放速度（比如1.5倍速）
 然后可以给每个频道分别设置不同的速度。

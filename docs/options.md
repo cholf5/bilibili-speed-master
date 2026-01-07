@@ -45,7 +45,7 @@ Below is a precise, structured reverse-engineering of the second UI.
 
 * **Title block**
 
-  * Title text: `bilibili Speed Master`
+  * Title text: `Bilibili Speed Master`
 
     * Color: White
     * Font weight: Bold

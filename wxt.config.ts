@@ -4,8 +4,8 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'bilibili Speed Master',
-    description: 'Set a global default speed for Bilibili videos with per-channel overrides.',
+    name: 'Bilibili Speed Master',
+    description: 'Set a global default speed for bilibili videos with per-channel overrides.',
     permissions: ['storage', 'tabs'],
     host_permissions: ['*://*.bilibili.com/*'],
     options_ui: {
@@ -13,7 +13,7 @@ export default defineConfig({
       open_in_tab: true,
     },
     action: {
-      default_title: 'bilibili Speed Master',
+      default_title: 'Bilibili Speed Master',
     },
   },
 });
