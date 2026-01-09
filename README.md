@@ -5,6 +5,10 @@
 <h1 align="center">哔哩哔哩倍速大师</h1>
 
 <p align="center">
+  <a href="README.md">简体中文</a> | <a href="./docs/readme/README_EN.md">English</a> | <a href="./docs/readme/README_ZH_TW.md">繁體中文</a> | <a href="./docs/readme/README_JA.md">日本語</a> | <a href="./docs/readme/README_KO.md">한국어</a> | <a href="./docs/readme/README_ES.md">Español</a> | <a href="./docs/readme/README_FR.md">Français</a> | <a href="./docs/readme/README_DE.md">Deutsch</a> | <a href="./docs/readme/README_RU.md">Русский</a> | <a href="./docs/readme/README_PT_BR.md">Português (Brasil)</a> | <a href="./docs/readme/README_IT.md">Italiano</a> | <a href="./docs/readme/README_TR.md">Türkçe</a> | <a href="./docs/readme/README_VI.md">Tiếng Việt</a> | <a href="./docs/readme/README_TH.md">ไทย</a> | <a href="./docs/readme/README_ID.md">Bahasa Indonesia</a> | <a href="./docs/readme/README_AR.md">العربية</a> | <a href="./docs/readme/README_HI.md">हिन्दी</a> | <a href="./docs/readme/README_PL.md">Polski</a>
+</p>
+
+<p align="center">
   💨 让 B 站视频倍速管理从此轻松无烦恼！
 </p>
 
@@ -94,4 +98,3 @@ pnpm compile       # 仅类型检查（无产物）
 ```
 
 更多产品与 UI 说明请参考：[docs/spec.md](docs/spec.md)、[docs/popup.md](docs/popup.md)、[docs/options.md](docs/options.md)
-
