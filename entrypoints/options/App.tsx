@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { getConfig, updateConfig, type ChannelOverride, type SpeedMasterConfig } from '@/src/shared/config';
 import { t } from '@/src/shared/i18n';
@@ -23,6 +23,16 @@ const formatSpeed = (value: number) => {
   return Number(rounded.toFixed(2)).toString();
 };
 
+const normalizeAvatarUrl = (url?: string | null): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+  if (url.startsWith('//')) {
+    return `https:${url}`;
+  }
+  return url;
+};
+
 const formatTimestamp = (value?: string) => {
   if (!value) {
     return '-';
@@ -36,10 +46,62 @@ const formatTimestamp = (value?: string) => {
 
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
+  const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
+  const avatarUrlsRef = useRef<string[]>([]);
 
   useEffect(() => {
     getConfig().then(setConfig);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAvatars = async () => {
+      const channels = Object.values(config?.channels ?? {});
+      const nextMap: Record<string, string> = {};
+      const createdUrls: string[] = [];
+
+      await Promise.all(
+        channels.map(async (channel) => {
+          const raw = normalizeAvatarUrl(channel.avatarUrl);
+          if (!raw) {
+            return;
+          }
+          if (raw.startsWith('data:') || raw.startsWith('blob:')) {
+            nextMap[channel.channelId] = raw;
+            return;
+          }
+          try {
+            const response = await fetch(raw);
+            if (!response.ok) {
+              return;
+            }
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            nextMap[channel.channelId] = objectUrl;
+            createdUrls.push(objectUrl);
+          } catch {
+            // Ignore failed avatar fetches.
+          }
+        }),
+      );
+
+      if (cancelled) {
+        createdUrls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      avatarUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      avatarUrlsRef.current = createdUrls;
+      setAvatarMap(nextMap);
+    };
+
+    void loadAvatars();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [config]);
 
   const hoursSaved = useMemo(() => {
     const seconds = config?.stats.timeSavedSeconds ?? 0;
@@ -245,58 +307,62 @@ function App() {
           {sortedChannels.length === 0 ? (
             <div className="table__empty">{t('noOverrides')}</div>
           ) : (
-            sortedChannels.map((channel) => (
-              <div className="table__row" key={channel.channelId}>
-                <div className="table__cell table__cell--channel">
-                  <div className="avatar">
-                    {channel.avatarUrl ? (
-                      <img src={channel.avatarUrl} alt="" />
-                    ) : (
-                      <span>{channel.channelName.slice(0, 1)}</span>
-                    )}
+            sortedChannels.map((channel) => {
+              const avatarSrc =
+                avatarMap[channel.channelId] ?? normalizeAvatarUrl(channel.avatarUrl);
+              return (
+                <div className="table__row" key={channel.channelId}>
+                  <div className="table__cell table__cell--channel">
+                    <div className="avatar">
+                      {avatarSrc ? (
+                        <img src={avatarSrc} alt="" />
+                      ) : (
+                        <span>{channel.channelName.slice(0, 1)}</span>
+                      )}
+                    </div>
+                    <span className="channel-name">{channel.channelName}</span>
                   </div>
-                  <span className="channel-name">{channel.channelName}</span>
-                </div>
-                <div className="table__cell table__cell--visit">
-                  {formatTimestamp(channel.lastVisit)}
-                </div>
-                <div className="table__cell table__cell--speed">
-                  <div className="stepper stepper--compact">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateChannel(channel.channelId, {
-                          speed: clampSpeed(channel.speed - SPEED_STEP),
-                        })
-                      }
-                      aria-label={`Decrease speed for ${channel.channelName}`}
-                    >
-                      -
-                    </button>
-                    <span>{formatSpeed(channel.speed)}</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        updateChannel(channel.channelId, {
-                          speed: clampSpeed(channel.speed + SPEED_STEP),
-                        })
-                      }
-                      aria-label={`Increase speed for ${channel.channelName}`}
-                    >
-                      +
-                    </button>
-                    <button
-                      type="button"
-                      className="delete"
-                      onClick={() => deleteChannel(channel.channelId)}
-                      aria-label={`Delete ${channel.channelName}`}
-                    >
-                      ×
-                    </button>
+                  <div className="table__cell table__cell--visit">
+                    {formatTimestamp(channel.lastVisit)}
+                  </div>
+                  <div className="table__cell table__cell--speed">
+                    <div className="stepper stepper--compact">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateChannel(channel.channelId, {
+                            speed: clampSpeed(channel.speed - SPEED_STEP),
+                          })
+                        }
+                        aria-label={`Decrease speed for ${channel.channelName}`}
+                      >
+                        -
+                      </button>
+                      <span>{formatSpeed(channel.speed)}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          updateChannel(channel.channelId, {
+                            speed: clampSpeed(channel.speed + SPEED_STEP),
+                          })
+                        }
+                        aria-label={`Increase speed for ${channel.channelName}`}
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        className="delete"
+                        onClick={() => deleteChannel(channel.channelId)}
+                        aria-label={`Delete ${channel.channelName}`}
+                      >
+                        &times;
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>

@@ -1,4 +1,4 @@
-import { getConfig, updateConfig, STORAGE_KEY } from '@/src/shared/config';
+import { getConfig, setConfig, updateConfig, STORAGE_KEY } from '@/src/shared/config';
 
 const SPEED_APPLY_GRACE_MS = 150;
 const URL_POLL_INTERVAL_MS = 800;
@@ -17,6 +17,33 @@ type ChannelInfo = {
   avatarUrl?: string;
 };
 
+const normalizeAvatarUrl = (url?: string | null): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+  if (url.startsWith('//')) {
+    return `https:${url}`;
+  }
+  return url;
+};
+
+const sanitizeChannelName = (name?: string | null): string => {
+  if (!name) {
+    return 'Unknown';
+  }
+  return name.replace(/\s+\d{4}-\d{2}-\d{2}$/, '').trim() || 'Unknown';
+};
+
+const getVideoIdFromUrl = (url: string): string | null => {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/\/video\/([^/]+)/);
+    return match?.[1] ?? null;
+  } catch {
+    return null;
+  }
+};
+
 const getChannelInfo = (): ChannelInfo | null => {
   const root = globalThis as typeof globalThis & {
     __INITIAL_STATE__?: any;
@@ -25,8 +52,8 @@ const getChannelInfo = (): ChannelInfo | null => {
   if (owner?.mid) {
     return {
       channelId: String(owner.mid),
-      channelName: owner.name || 'Unknown',
-      avatarUrl: owner.face || undefined,
+      channelName: sanitizeChannelName(owner.name),
+      avatarUrl: normalizeAvatarUrl(owner.face),
     };
   }
 
@@ -45,17 +72,40 @@ const getChannelInfo = (): ChannelInfo | null => {
 
   const upName =
     document.querySelector('.up-info .up-name, .up-info__name, .up-name')?.textContent?.trim();
-  const channelName = upName || link.textContent?.trim() || 'Unknown';
+  const channelName = sanitizeChannelName(upName || link.textContent?.trim());
+  const avatarElement = document.querySelector<HTMLImageElement>(
+    [
+      '.up-info img',
+      '.up-info__avatar img',
+      '.up-info__face img',
+      '.up-info-container img',
+      '.up-panel-container img',
+      'img.bili-avatar-img',
+      'img[data-src*="hdslb.com/bfs/face"]',
+    ].join(', '),
+  );
   const avatar =
-    document
-      .querySelector('.up-info img, .up-info__avatar img, .up-info__face img')
-      ?.getAttribute('src') ?? undefined;
+    avatarElement?.getAttribute('data-src') ??
+    avatarElement?.getAttribute('src') ??
+    undefined;
 
   return {
     channelId: match[1],
     channelName,
-    avatarUrl: avatar,
+    avatarUrl: normalizeAvatarUrl(avatar),
   };
+};
+
+const updateConfigIfChanged = async (
+  updater: (current: Awaited<ReturnType<typeof getConfig>>) => Awaited<ReturnType<typeof getConfig>>,
+) => {
+  const current = await getConfig();
+  const next = updater(current);
+  if (next === current) {
+    return current;
+  }
+  await setConfig(next);
+  return next;
 };
 
 const applyPlaybackRate = (video: HTMLVideoElement, speed: number): void => {
@@ -149,6 +199,8 @@ export default defineContentScript({
     let lastPlaybackRate = 1;
     let timeSavedBuffer = 0;
     let timeSaveTimer: number | null = null;
+    let lastChannelId: string | null = null;
+    let lastVideoId: string | null = null;
 
     const clearApplyTimer = () => {
       if (applyTimer !== null) {
@@ -195,19 +247,65 @@ export default defineContentScript({
       }
 
       const currentSpeed = activeVideo.playbackRate;
-      await updateConfig((config) => ({
-        ...config,
-        channels: {
-          ...config.channels,
-          [channel.channelId]: {
-            channelId: channel.channelId,
-            channelName: channel.channelName,
-            avatarUrl: channel.avatarUrl,
-            speed: currentSpeed,
-            lastVisit: new Date().toISOString(),
+      await updateConfigIfChanged((config) => {
+        const existing = config.channels[channel.channelId];
+        if (
+          existing &&
+          existing.speed === currentSpeed &&
+          existing.channelName === channel.channelName &&
+          existing.avatarUrl === channel.avatarUrl
+        ) {
+          return config;
+        }
+        return {
+          ...config,
+          channels: {
+            ...config.channels,
+            [channel.channelId]: {
+              channelId: channel.channelId,
+              channelName: channel.channelName,
+              avatarUrl: channel.avatarUrl,
+              speed: currentSpeed,
+              lastVisit: new Date().toISOString(),
+            },
           },
-        },
-      }));
+        };
+      });
+    };
+
+    const recordChannelVisit = async () => {
+      const channel = getChannelInfo();
+      if (!channel) {
+        return;
+      }
+
+      const currentVideoId = getVideoIdFromUrl(location.href);
+      if (channel.channelId === lastChannelId && currentVideoId === lastVideoId) {
+        return;
+      }
+
+      await updateConfigIfChanged((config) => {
+        const existing = config.channels[channel.channelId];
+        if (existing) {
+          return {
+            ...config,
+            channels: {
+              ...config.channels,
+              [channel.channelId]: {
+                ...existing,
+                channelName: channel.channelName,
+                avatarUrl: channel.avatarUrl,
+                lastVisit: new Date().toISOString(),
+              },
+            },
+          };
+        }
+
+        return config;
+      });
+
+      lastChannelId = channel.channelId;
+      lastVideoId = currentVideoId;
     };
 
     const applySpeedForVideo = async (video: HTMLVideoElement) => {
@@ -226,21 +324,6 @@ export default defineContentScript({
         clearProgrammaticRate();
       }, 1000);
       applyPlaybackRate(video, targetSpeed);
-
-      if (channelOverride && channel?.channelId) {
-        await updateConfig((current) => ({
-          ...current,
-          channels: {
-            ...current.channels,
-            [channel.channelId]: {
-              ...current.channels[channel.channelId],
-              channelName: channel.channelName,
-              avatarUrl: channel.avatarUrl,
-              lastVisit: new Date().toISOString(),
-            },
-          },
-        }));
-      }
     };
 
     const handleVideoMetadata = () => {
@@ -295,6 +378,7 @@ export default defineContentScript({
       if (activeVideo) {
         void applySpeedForVideo(activeVideo);
       }
+      void recordChannelVisit();
     };
 
     const attachVideo = (video: HTMLVideoElement) => {
@@ -322,6 +406,7 @@ export default defineContentScript({
       activeVideo.addEventListener('emptied', handleVideoMetadata);
       activeVideo.addEventListener('timeupdate', handleTimeUpdate);
       void applySpeedForVideo(activeVideo);
+      void recordChannelVisit();
       notifyPorts();
     };
 
