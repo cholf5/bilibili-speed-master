@@ -57,6 +57,43 @@ function App() {
     void updateGlobal({ defaultSpeed: nextSpeed });
   };
 
+  const sendCurrentSpeed = async (speed: number) => {
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const tabsApi = root.browser?.tabs ?? root.chrome?.tabs ?? null;
+    if (!tabsApi?.query) {
+      return;
+    }
+
+    if (portRef.current) {
+      portRef.current.postMessage({
+        type: 'speed-master:set-current-speed',
+        speed,
+      });
+      return;
+    }
+
+    try {
+      const tabs = await tabsApi.query({ active: true, currentWindow: true });
+      const tabId = tabs?.[0]?.id;
+      if (!tabId || !tabsApi.sendMessage) {
+        return;
+      }
+      await tabsApi.sendMessage(tabId, {
+        type: 'speed-master:set-current-speed',
+        speed,
+      });
+    } catch {
+      // Ignore if content script is not available.
+    }
+  };
+
+  const changeCurrentSpeed = (delta: number) => {
+    const base = currentSpeed ?? config?.global.defaultSpeed ?? 1;
+    const nextSpeed = clampSpeed(base + delta);
+    setCurrentSpeed(nextSpeed);
+    void sendCurrentSpeed(nextSpeed);
+  };
+
   const handleQualityChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     void updateGlobal({ preferredQuality: event.target.value });
   };
@@ -189,12 +226,20 @@ function App() {
       <section className="panel">
         <div className="row">
           <div className="row__label">{t('currentSpeed')}</div>
-          <div className="stepper stepper--disabled" aria-disabled="true">
-            <button type="button" disabled aria-label="Decrease speed">
+          <div className="stepper">
+            <button
+              type="button"
+              onClick={() => changeCurrentSpeed(-SPEED_STEP)}
+              aria-label="Decrease speed"
+            >
               -
             </button>
             <span>{formatSpeed(displayedCurrentSpeed)}</span>
-            <button type="button" disabled aria-label="Increase speed">
+            <button
+              type="button"
+              onClick={() => changeCurrentSpeed(SPEED_STEP)}
+              aria-label="Increase speed"
+            >
               +
             </button>
           </div>

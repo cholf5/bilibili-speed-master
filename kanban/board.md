@@ -1,4 +1,4 @@
-﻿# Kanban Board
+# Kanban Board
 
 ## Backlog
 
@@ -12,6 +12,7 @@
 - 
 
 ## Testing / QA
+- B-1 Fix core playback bugs found in retro review (dev + UI QA done; live-player checklist in card pending)
 - 
 
 ## Blocked

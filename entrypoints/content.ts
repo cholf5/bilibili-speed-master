@@ -1,6 +1,5 @@
 import { getConfig, setConfig, updateConfig, STORAGE_KEY } from '@/src/shared/config';
 
-const SPEED_APPLY_GRACE_MS = 150;
 const URL_POLL_INTERVAL_MS = 800;
 const KEYBOARD_SPEED_STEP = 0.25;
 const SPEED_MIN = 0.1;
@@ -10,6 +9,9 @@ const SEEK_STEP_LARGE = 10;
 const VOLUME_STEP = 0.05;
 const FRAME_STEP = 1 / 30;
 const TIME_SAVE_FLUSH_MS = 3000;
+const MEDIA_LOAD_GUARD_MS = 500;
+const TIME_UPDATE_MAX_DELTA_S = 2;
+const QUALITY_APPLY_DELAY_MS = 1200;
 
 type ChannelInfo = {
   channelId: string;
@@ -42,6 +44,11 @@ const getVideoIdFromUrl = (url: string): string | null => {
   } catch {
     return null;
   }
+};
+
+const isManagedVideoPage = (): boolean => {
+  const path = location.pathname;
+  return path.includes('/video/') || path.includes('/bangumi/play/');
 };
 
 const getChannelInfo = (): ChannelInfo | null => {
@@ -114,6 +121,9 @@ const applyPlaybackRate = (video: HTMLVideoElement, speed: number): void => {
   }
 
   const clamped = Math.min(SPEED_MAX, Math.max(SPEED_MIN, speed));
+  // defaultPlaybackRate makes the browser land on our target speed whenever it
+  // resets playbackRate during a media load (e.g. autoplaying the next video).
+  video.defaultPlaybackRate = clamped;
   video.playbackRate = clamped;
 };
 
@@ -162,7 +172,7 @@ const toggleCaptions = (video: HTMLVideoElement) => {
 
 const focusSearch = () => {
   const input = document.querySelector<HTMLInputElement>(
-    'input[type="search"], input[placeholder*="search" i], input[name*="search" i], input[name="keyword"]',
+    'input.nav-search-input, input[type="search"], input[placeholder*="search" i], input[name*="search" i], input[name="keyword"]',
   );
   if (input) {
     input.focus();
@@ -189,25 +199,17 @@ export default defineContentScript({
   matches: ['*://*.bilibili.com/*'],
   main() {
     let activeVideo: HTMLVideoElement | null = null;
-    let applying = false;
-    let applyTimer: number | null = null;
     let programmaticRate: number | null = null;
     let programmaticRateTimer: number | null = null;
+    let mediaLoadGuardUntil = 0;
     let lastUrl = location.href;
     let urlPoller: number | null = null;
-    let lastPlaybackTime = 0;
+    let lastPlaybackTime = -1;
     let lastPlaybackRate = 1;
     let timeSavedBuffer = 0;
     let timeSaveTimer: number | null = null;
     let lastChannelId: string | null = null;
     let lastVideoId: string | null = null;
-
-    const clearApplyTimer = () => {
-      if (applyTimer !== null) {
-        window.clearTimeout(applyTimer);
-        applyTimer = null;
-      }
-    };
 
     const clearProgrammaticRate = () => {
       if (programmaticRateTimer !== null) {
@@ -217,17 +219,12 @@ export default defineContentScript({
       programmaticRate = null;
     };
 
-    const markApplying = () => {
-      applying = true;
-      clearApplyTimer();
-      applyTimer = window.setTimeout(() => {
-        applying = false;
-        applyTimer = null;
-      }, SPEED_APPLY_GRACE_MS);
+    const markMediaLoadGuard = () => {
+      mediaLoadGuardUntil = Date.now() + MEDIA_LOAD_GUARD_MS;
     };
 
     const handleRateChange = async () => {
-      if (!activeVideo || applying) {
+      if (!activeVideo) {
         return;
       }
 
@@ -238,6 +235,17 @@ export default defineContentScript({
         Math.abs(activeVideo.playbackRate - programmaticRate) < 0.001
       ) {
         clearProgrammaticRate();
+        return;
+      }
+
+      // While media is loading the element resets its own rate (and Bilibili's
+      // player may too, when advancing to the next video); those resets are not
+      // user intent and must never be persisted as a channel override.
+      if (Date.now() < mediaLoadGuardUntil) {
+        return;
+      }
+
+      if (!isManagedVideoPage()) {
         return;
       }
 
@@ -274,6 +282,10 @@ export default defineContentScript({
     };
 
     const recordChannelVisit = async () => {
+      if (!isManagedVideoPage()) {
+        return;
+      }
+
       const channel = getChannelInfo();
       if (!channel) {
         return;
@@ -315,7 +327,6 @@ export default defineContentScript({
         channel?.channelId ? config.channels[channel.channelId] : undefined;
       const targetSpeed = channelOverride?.speed ?? config.global.defaultSpeed;
 
-      markApplying();
       programmaticRate = targetSpeed;
       if (programmaticRateTimer !== null) {
         window.clearTimeout(programmaticRateTimer);
@@ -329,7 +340,78 @@ export default defineContentScript({
     const handleVideoMetadata = () => {
       if (activeVideo) {
         void applySpeedForVideo(activeVideo);
+        window.setTimeout(() => {
+          void applyPreferredQuality();
+        }, QUALITY_APPLY_DELAY_MS);
       }
+    };
+
+    let lastQualityApply: { videoId: string | null; quality: string } | null = null;
+
+    // Bilibili marks quality menu entries with numeric data-value codes
+    // (80=1080P, 116=1080P60, 64=720P, 32=480P, 16=360P); prefer the
+    // non-premium entry for each level.
+    const QUALITY_CODES: Record<string, string[]> = {
+      '1080p': ['80', '116'],
+      '720p': ['64'],
+      '480p': ['32'],
+      '360p': ['16'],
+    };
+
+    // Best-effort quality selection: click the matching menu entry once per
+    // video. Guarded against loops by the active-state and dedupe checks.
+    const applyPreferredQuality = async () => {
+      if (!activeVideo || !isManagedVideoPage()) {
+        return;
+      }
+
+      const config = await getConfig();
+      const preferred = config.global.preferredQuality;
+      if (!preferred || preferred === 'auto') {
+        return;
+      }
+
+      const items = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '.bpx-player-ctrl-quality-menu-item, .bilibili-player-video-quality-menu .quality-it',
+        ),
+      );
+      if (items.length === 0) {
+        return;
+      }
+
+      const codes = QUALITY_CODES[preferred] ?? [];
+      const target =
+        codes
+          .map((code) =>
+            items.find((item) => (item.getAttribute('data-value') ?? '') === code),
+          )
+          .find((item) => item) ??
+        items.find((item) => {
+          const text = (item.textContent ?? '').toLowerCase().replace(/\s+/g, '');
+          return text.startsWith(preferred) && !text.includes('大会员');
+        });
+      if (!target) {
+        return;
+      }
+      if (
+        target.classList.contains('bpx-state-active') ||
+        target.classList.contains('active')
+      ) {
+        return;
+      }
+
+      const videoId = getVideoIdFromUrl(location.href);
+      if (
+        lastQualityApply &&
+        lastQualityApply.videoId === videoId &&
+        lastQualityApply.quality === preferred
+      ) {
+        return;
+      }
+
+      lastQualityApply = { videoId, quality: preferred };
+      target.click();
     };
 
     const flushTimeSaved = async () => {
@@ -362,10 +444,18 @@ export default defineContentScript({
         return;
       }
       const currentTime = activeVideo.currentTime;
-      const delta = currentTime - lastPlaybackTime;
+      // A negative lastPlaybackTime is the sentinel for "just attached or just
+      // navigated": establish the baseline instead of counting a fake delta.
+      const delta = lastPlaybackTime < 0 ? 0 : currentTime - lastPlaybackTime;
       lastPlaybackTime = currentTime;
 
-      if (delta <= 0 || lastPlaybackRate <= 1) {
+      // Deltas larger than a couple of ticks are seeks or media transitions,
+      // not playback progress; only rates above 1x actually save time.
+      if (
+        delta <= 0 ||
+        delta > TIME_UPDATE_MAX_DELTA_S ||
+        lastPlaybackRate <= 1
+      ) {
         return;
       }
 
@@ -375,10 +465,41 @@ export default defineContentScript({
     };
 
     const handleNavigationChange = () => {
+      lastPlaybackTime = -1;
+      syncManagedVideo();
       if (activeVideo) {
         void applySpeedForVideo(activeVideo);
       }
       void recordChannelVisit();
+    };
+
+    const detachVideo = () => {
+      if (!activeVideo) {
+        return;
+      }
+
+      activeVideo.removeEventListener('ratechange', handleRateChange);
+      activeVideo.removeEventListener('ratechange', notifyPorts);
+      activeVideo.removeEventListener('loadedmetadata', handleVideoMetadata);
+      activeVideo.removeEventListener('play', handleVideoMetadata);
+      activeVideo.removeEventListener('emptied', handleVideoMetadata);
+      activeVideo.removeEventListener('loadstart', markMediaLoadGuard);
+      activeVideo.removeEventListener('timeupdate', handleTimeUpdate);
+      activeVideo.removeEventListener('pause', flushTimeSaved);
+      activeVideo = null;
+      clearProgrammaticRate();
+      lastPlaybackTime = -1;
+      void flushTimeSaved();
+      notifyPorts();
+    };
+
+    const syncManagedVideo = () => {
+      const video = findVideo();
+      if (video && isManagedVideoPage()) {
+        attachVideo(video);
+        return;
+      }
+      detachVideo();
     };
 
     const attachVideo = (video: HTMLVideoElement) => {
@@ -387,34 +508,27 @@ export default defineContentScript({
       }
 
       if (activeVideo) {
-        activeVideo.removeEventListener('ratechange', handleRateChange);
-        activeVideo.removeEventListener('ratechange', notifyPorts);
-        activeVideo.removeEventListener('loadedmetadata', handleVideoMetadata);
-        activeVideo.removeEventListener('play', handleVideoMetadata);
-        activeVideo.removeEventListener('emptied', handleVideoMetadata);
-        activeVideo.removeEventListener('timeupdate', handleTimeUpdate);
-        void flushTimeSaved();
+        detachVideo();
       }
 
       activeVideo = video;
-      lastPlaybackTime = activeVideo.currentTime;
-      lastPlaybackRate = activeVideo.playbackRate;
+      lastPlaybackTime = -1;
+      lastPlaybackRate = video.playbackRate;
       activeVideo.addEventListener('ratechange', handleRateChange);
       activeVideo.addEventListener('ratechange', notifyPorts);
       activeVideo.addEventListener('loadedmetadata', handleVideoMetadata);
       activeVideo.addEventListener('play', handleVideoMetadata);
       activeVideo.addEventListener('emptied', handleVideoMetadata);
+      activeVideo.addEventListener('loadstart', markMediaLoadGuard);
       activeVideo.addEventListener('timeupdate', handleTimeUpdate);
+      activeVideo.addEventListener('pause', flushTimeSaved);
       void applySpeedForVideo(activeVideo);
       void recordChannelVisit();
       notifyPorts();
     };
 
     const observer = new MutationObserver(() => {
-      const video = findVideo();
-      if (video) {
-        attachVideo(video);
-      }
+      syncManagedVideo();
     });
 
     const runtimeOnMessage = (() => {
@@ -429,6 +543,12 @@ export default defineContentScript({
       runtimeOnMessage.addListener((message: any, _sender: any, sendResponse: any) => {
         if (message?.type === 'speed-master:get-current-speed') {
           sendResponse({ speed: activeVideo?.playbackRate ?? null });
+        }
+        if (message?.type === 'speed-master:set-current-speed') {
+          if (activeVideo && typeof message.speed === 'number') {
+            applyPlaybackRate(activeVideo, message.speed);
+          }
+          sendResponse({ ok: Boolean(activeVideo) });
         }
       });
     }
@@ -462,6 +582,11 @@ export default defineContentScript({
           if (message?.type === 'speed-master:request-current-speed') {
             notifyPorts();
           }
+          if (message?.type === 'speed-master:set-current-speed') {
+            if (activeVideo && typeof message.speed === 'number') {
+              applyPlaybackRate(activeVideo, message.speed);
+            }
+          }
         });
 
         connectedPorts.add(port);
@@ -486,8 +611,19 @@ export default defineContentScript({
       );
     };
 
+    const consume = (event: KeyboardEvent) => {
+      // The capture-phase listener runs before Bilibili's own player handlers;
+      // stopping propagation keeps a handled key from also being acted on by
+      // the player (a double play/pause toggle cancels itself out).
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+
     const handleKeydown = (event: KeyboardEvent) => {
-      if (!activeVideo || isEditableTarget(event.target)) {
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+      if (!activeVideo || !isManagedVideoPage() || isEditableTarget(event.target)) {
         return;
       }
 
@@ -495,61 +631,61 @@ export default defineContentScript({
       const code = event.code;
 
       if (key === ' ' || key === 'k') {
-        event.preventDefault();
+        consume(event);
         togglePlay(activeVideo);
         return;
       }
 
       if (key === 'm') {
-        event.preventDefault();
+        consume(event);
         activeVideo.muted = !activeVideo.muted;
         return;
       }
 
       if (key === 'j') {
-        event.preventDefault();
+        consume(event);
         seekBy(activeVideo, -SEEK_STEP_LARGE);
         return;
       }
 
       if (key === 'l') {
-        event.preventDefault();
+        consume(event);
         seekBy(activeVideo, SEEK_STEP_LARGE);
         return;
       }
 
       if (key === 'ArrowLeft') {
-        event.preventDefault();
+        consume(event);
         seekBy(activeVideo, -SEEK_STEP_SMALL);
         return;
       }
 
       if (key === 'ArrowRight') {
-        event.preventDefault();
+        consume(event);
         seekBy(activeVideo, SEEK_STEP_SMALL);
         return;
       }
 
       if (key === 'ArrowUp') {
-        event.preventDefault();
+        consume(event);
         activeVideo.volume = Math.min(1, activeVideo.volume + VOLUME_STEP);
         return;
       }
 
       if (key === 'ArrowDown') {
-        event.preventDefault();
+        consume(event);
         activeVideo.volume = Math.max(0, activeVideo.volume - VOLUME_STEP);
         return;
       }
 
       if (key === 'Home') {
-        event.preventDefault();
+        consume(event);
         activeVideo.currentTime = 0;
         return;
       }
 
       if (key === 'End') {
-        event.preventDefault();
+        consume(event);
         if (Number.isFinite(activeVideo.duration)) {
           activeVideo.currentTime = activeVideo.duration;
         }
@@ -557,62 +693,70 @@ export default defineContentScript({
       }
 
       if (key === '.' && activeVideo.paused) {
-        event.preventDefault();
+        consume(event);
         seekBy(activeVideo, FRAME_STEP);
         return;
       }
 
       if (key === ',' && activeVideo.paused) {
-        event.preventDefault();
+        consume(event);
         seekBy(activeVideo, -FRAME_STEP);
         return;
       }
 
       if (key === '>' || key === '<') {
-        event.preventDefault();
+        consume(event);
         const delta = key === '>' ? KEYBOARD_SPEED_STEP : -KEYBOARD_SPEED_STEP;
         applyPlaybackRate(activeVideo, activeVideo.playbackRate + delta);
         return;
       }
 
       if (key === 'f') {
-        event.preventDefault();
+        consume(event);
         toggleFullscreen(activeVideo);
         return;
       }
 
       if (key === 'c') {
-        event.preventDefault();
+        consume(event);
         toggleCaptions(activeVideo);
         return;
       }
 
       if (key === 'i') {
-        event.preventDefault();
-        clickPlayerButton(['.bpx-player-ctrl-miniplayer', '.bilibili-player-video-btn-miniplayer']);
+        consume(event);
+        const clicked = clickPlayerButton([
+          '.bpx-player-ctrl-pip',
+          '.bilibili-player-video-btn-pip',
+          '.bpx-player-ctrl-miniplayer',
+          '.bilibili-player-video-btn-miniplayer',
+        ]);
+        if (!clicked && document.pictureInPictureElement !== activeVideo) {
+          void activeVideo.requestPictureInPicture?.();
+        }
         return;
       }
 
       if (event.shiftKey && key === 'N') {
-        event.preventDefault();
+        consume(event);
         clickPlayerButton(['.bpx-player-ctrl-next', '.bilibili-player-video-btn-next']);
         return;
       }
 
       if (event.shiftKey && key === 'P') {
-        event.preventDefault();
+        consume(event);
         clickPlayerButton(['.bpx-player-ctrl-prev', '.bilibili-player-video-btn-prev']);
         return;
       }
 
       if (key === '/') {
-        event.preventDefault();
+        consume(event);
         focusSearch();
         return;
       }
 
       if (key >= '0' && key <= '9') {
-        event.preventDefault();
+        consume(event);
         const number = Number(key);
         const percent = number === 0 ? 0 : number / 10;
         seekToPercent(activeVideo, percent);
@@ -640,12 +784,9 @@ export default defineContentScript({
       subtree: true,
     });
 
-    const initialVideo = findVideo();
-    if (initialVideo) {
-      attachVideo(initialVideo);
-    }
+    syncManagedVideo();
 
-    window.addEventListener('keydown', handleKeydown);
+    window.addEventListener('keydown', handleKeydown, true);
 
     const storageOnChanged = (() => {
       const root = globalThis as typeof globalThis & {
@@ -662,6 +803,7 @@ export default defineContentScript({
         }
         if (activeVideo) {
           void applySpeedForVideo(activeVideo);
+          void applyPreferredQuality();
         }
       });
     }
@@ -698,14 +840,25 @@ export default defineContentScript({
       }
     }, URL_POLL_INTERVAL_MS);
 
+    const flushBufferedStats = () => {
+      void flushTimeSaved();
+    };
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        flushBufferedStats();
+      }
+    });
+    window.addEventListener('pagehide', flushBufferedStats);
+
     window.addEventListener('beforeunload', () => {
-      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('keydown', handleKeydown, true);
       window.removeEventListener('popstate', handleNavigationChange);
       if (urlPoller !== null) {
         window.clearInterval(urlPoller);
         urlPoller = null;
       }
-      void flushTimeSaved();
+      flushBufferedStats();
     });
   },
 });
