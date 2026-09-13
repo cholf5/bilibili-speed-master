@@ -252,7 +252,7 @@ function App() {
             <button
               type="button"
               onClick={() => changeDefaultSpeed(-SPEED_STEP)}
-              aria-label="Decrease default speed"
+              aria-label="Decrease global speed"
             >
               -
             </button>
@@ -260,7 +260,7 @@ function App() {
             <button
               type="button"
               onClick={() => changeDefaultSpeed(SPEED_STEP)}
-              aria-label="Increase default speed"
+              aria-label="Increase global speed"
             >
               +
             </button>

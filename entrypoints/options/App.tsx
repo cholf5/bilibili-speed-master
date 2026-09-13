@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
 import { getConfig, updateConfig, type ChannelOverride, type SpeedMasterConfig } from '@/src/shared/config';
 import { t } from '@/src/shared/i18n';
@@ -267,7 +267,7 @@ function App() {
             <button
               type="button"
               onClick={() => changeDefaultSpeed(-SPEED_STEP)}
-              aria-label="Decrease default speed"
+              aria-label="Decrease global speed"
             >
               -
             </button>
@@ -275,7 +275,7 @@ function App() {
             <button
               type="button"
               onClick={() => changeDefaultSpeed(SPEED_STEP)}
-              aria-label="Increase default speed"
+              aria-label="Increase global speed"
             >
               +
             </button>

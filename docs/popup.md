@@ -90,11 +90,11 @@ Each row follows the same pattern.
     * Centered text
     * Same height as buttons
 
-#### Row 2: Default Speed
+#### Row 2: Global Speed
 
 * **Label**
 
-  * Text: `Default Speed`
+  * Text: `Global Speed`
   * Same styling and alignment as Row 1 label
 
 * **Stepper Control**

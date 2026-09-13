@@ -112,11 +112,11 @@ Below is a precise, structured reverse-engineering of the second UI.
 
 ---
 
-#### Card 2: Default Speed
+#### Card 2: Global Speed
 
 * **Title**
 
-  * Text: `Default Speed`
+  * Text: `Global Speed`
   * Color: White
 
 * **Stepper Control**
