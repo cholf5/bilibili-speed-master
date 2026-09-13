@@ -350,7 +350,10 @@ export default defineContentScript({
         programmaticRate !== null &&
         Math.abs(activeVideo.playbackRate - programmaticRate) < 0.001
       ) {
-        clearProgrammaticRate();
+        // Assigning defaultPlaybackRate and playbackRate each fires a
+        // ratechange; keep the marker until its timer expires so the second
+        // event is swallowed too instead of reading as user intent. Genuine
+        // user changes to a different rate never match and pass through.
         return;
       }
 

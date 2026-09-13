@@ -189,7 +189,6 @@ function App() {
     };
   }, []);
 
-  const displayedCurrentSpeed = currentSpeed ?? config?.global.defaultSpeed ?? 1;
   const defaultSpeed = config?.global.defaultSpeed ?? 1;
   const preferredQuality = config?.global.preferredQuality ?? 'auto';
 
@@ -234,7 +233,10 @@ function App() {
             >
               -
             </button>
-            <span>{formatSpeed(displayedCurrentSpeed)}</span>
+            {/* Unknown until the content script reports a rate (e.g. tabs
+                opened before the extension was installed); never show the
+                default speed here, it would look like a real reading. */}
+            <span>{currentSpeed === null ? '–' : formatSpeed(currentSpeed)}</span>
             <button
               type="button"
               onClick={() => changeCurrentSpeed(SPEED_STEP)}
