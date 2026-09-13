@@ -13,9 +13,6 @@
 
 ## Testing / QA
 - B-1 Fix core playback bugs found in retro review (dev + UI QA done; live-player checklist in card pending)
-- B-2 Fix cross-channel speed contamination on SPA transitions (dev done, root cause verified live; live checklist in card pending)
-- B-3 Stop Bilibili's global speed restore from being persisted as a channel override (dev done; live checklist in card pending)
-- B-4 Fix phantom channel override from default-speed stepper and honest popup current-speed display (dev done)
 - 
 
 ## Blocked
@@ -32,3 +29,6 @@
 - A-8 Add i18n scaffolding and strings
 - A-9 Add import/export settings
 - A-10 Track and display time saved stats
+- B-2 Fix cross-channel speed contamination on SPA transitions (user-accepted 2026-09-13)
+- B-3 Stop Bilibili's global speed restore from being persisted as a channel override (user-accepted 2026-09-13)
+- B-4 Fix phantom channel override from default-speed stepper and honest popup current-speed display (user-accepted 2026-09-13)
