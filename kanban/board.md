@@ -13,6 +13,7 @@
 
 ## Testing / QA
 - B-1 Fix core playback bugs found in retro review (dev + UI QA done; live-player checklist in card pending)
+- B-2 Fix cross-channel speed contamination on SPA transitions (dev done, root cause verified live; live checklist in card pending)
 - 
 
 ## Blocked

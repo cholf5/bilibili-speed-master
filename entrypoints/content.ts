@@ -12,6 +12,10 @@ const TIME_SAVE_FLUSH_MS = 3000;
 const MEDIA_LOAD_GUARD_MS = 500;
 const TIME_UPDATE_MAX_DELTA_S = 2;
 const QUALITY_APPLY_DELAY_MS = 1200;
+// SPA transitions swap the media seconds before the DOM's UP link updates, so
+// channel identity for /video/ pages is resolved authoritatively from the view
+// API (keyed by the URL's video id, which updates together with the media).
+const VIEW_API_URL = 'https://api.bilibili.com/x/web-interface/view';
 
 type ChannelInfo = {
   channelId: string;
@@ -64,9 +68,13 @@ const getChannelInfo = (): ChannelInfo | null => {
     };
   }
 
-  const link = document.querySelector<HTMLAnchorElement>(
-    'a[href*="space.bilibili.com/"]',
-  );
+  // The watch page renders several space.bilibili.com links (UP panel,
+  // related videos, comments); the UP-panel one is marked with an "upinfo"
+  // spm parameter, so prefer it before falling back to the first link.
+  const link =
+    document.querySelector<HTMLAnchorElement>(
+      'a[href*="space.bilibili.com/"][href*="upinfo"]',
+    ) ?? document.querySelector<HTMLAnchorElement>('a[href*="space.bilibili.com/"]');
   if (!link) {
     return null;
   }
@@ -210,6 +218,13 @@ export default defineContentScript({
     let timeSaveTimer: number | null = null;
     let lastChannelId: string | null = null;
     let lastVideoId: string | null = null;
+    // Speed we last applied programmatically and the video id it was for;
+    // lets the resolve reconciler tell "rate untouched since our provisional
+    // apply" apart from "user changed the rate while detection lagged".
+    let appliedRate: number | null = null;
+    let appliedForVideoId: string | null = null;
+    const authoritativeChannels = new Map<string, ChannelInfo>();
+    const pendingResolves = new Map<string, Promise<ChannelInfo | null>>();
 
     const clearProgrammaticRate = () => {
       if (programmaticRateTimer !== null) {
@@ -221,6 +236,90 @@ export default defineContentScript({
 
     const markMediaLoadGuard = () => {
       mediaLoadGuardUntil = Date.now() + MEDIA_LOAD_GUARD_MS;
+    };
+
+    const getAuthoritativeChannel = (): ChannelInfo | null => {
+      const videoId = getVideoIdFromUrl(location.href);
+      return (videoId && authoritativeChannels.get(videoId)) || null;
+    };
+
+    const getCurrentChannel = (): ChannelInfo | null =>
+      getAuthoritativeChannel() ?? getChannelInfo();
+
+    const resolveChannel = (videoId: string): Promise<ChannelInfo | null> => {
+      const cached = authoritativeChannels.get(videoId);
+      if (cached) {
+        return Promise.resolve(cached);
+      }
+      const pending = pendingResolves.get(videoId);
+      if (pending) {
+        return pending;
+      }
+
+      const request = (async () => {
+        try {
+          const aidMatch = /^av(\d+)$/.exec(videoId);
+          const query = aidMatch ? `aid=${aidMatch[1]}` : `bvid=${videoId}`;
+          const response = await fetch(`${VIEW_API_URL}?${query}`, {
+            credentials: 'omit',
+          });
+          const payload = await response.json();
+          const owner = payload?.data?.owner;
+          if (payload?.code === 0 && owner?.mid) {
+            const info: ChannelInfo = {
+              channelId: String(owner.mid),
+              channelName: sanitizeChannelName(owner.name),
+              avatarUrl: normalizeAvatarUrl(owner.face),
+            };
+            authoritativeChannels.set(videoId, info);
+            return info;
+          }
+        } catch {
+          // Transient network failure: stay unauthoritative for this video;
+          // the next navigation or media event retries.
+        }
+        return null;
+      })();
+
+      pendingResolves.set(videoId, request);
+      void request.then(() => {
+        if (pendingResolves.get(videoId) === request) {
+          pendingResolves.delete(videoId);
+        }
+      });
+      return request;
+    };
+
+    // Runs once the real channel for the current video is known: corrects our
+    // provisional speed apply, or persists the rate the user set while
+    // detection was still lagging behind the media swap.
+    const reconcileAfterResolve = (videoId: string) => {
+      if (!activeVideo || getVideoIdFromUrl(location.href) !== videoId) {
+        return;
+      }
+      if (appliedForVideoId === videoId) {
+        const rateIsOurs =
+          appliedRate !== null &&
+          Math.abs(activeVideo.playbackRate - appliedRate) < 0.001;
+        if (rateIsOurs) {
+          void applySpeedForVideo(activeVideo);
+        } else {
+          void handleRateChange();
+        }
+      }
+      void recordChannelVisit();
+    };
+
+    const ensureChannelResolved = () => {
+      const videoId = getVideoIdFromUrl(location.href);
+      if (!videoId) {
+        return;
+      }
+      void resolveChannel(videoId).then((info) => {
+        if (info) {
+          reconcileAfterResolve(videoId);
+        }
+      });
     };
 
     const handleRateChange = async () => {
@@ -249,7 +348,16 @@ export default defineContentScript({
         return;
       }
 
-      const channel = getChannelInfo();
+      // On SPA transitions the DOM fallback can still describe the previous
+      // video's channel for seconds after the media swap; persisting before
+      // the authoritative channel resolves would corrupt that channel's
+      // override. The resolve reconciler persists genuine user changes once
+      // the real channel is known.
+      if (getVideoIdFromUrl(location.href) && !getAuthoritativeChannel()) {
+        return;
+      }
+
+      const channel = getCurrentChannel();
       if (!channel) {
         return;
       }
@@ -286,7 +394,13 @@ export default defineContentScript({
         return;
       }
 
-      const channel = getChannelInfo();
+      // Same gating as handleRateChange: the visit must not be recorded for
+      // the previous video's channel while DOM detection is still lagging.
+      if (getVideoIdFromUrl(location.href) && !getAuthoritativeChannel()) {
+        return;
+      }
+
+      const channel = getCurrentChannel();
       if (!channel) {
         return;
       }
@@ -322,7 +436,7 @@ export default defineContentScript({
 
     const applySpeedForVideo = async (video: HTMLVideoElement) => {
       const config = await getConfig();
-      const channel = getChannelInfo();
+      const channel = getCurrentChannel();
       const channelOverride =
         channel?.channelId ? config.channels[channel.channelId] : undefined;
       const targetSpeed = channelOverride?.speed ?? config.global.defaultSpeed;
@@ -335,6 +449,8 @@ export default defineContentScript({
         clearProgrammaticRate();
       }, 1000);
       applyPlaybackRate(video, targetSpeed);
+      appliedRate = targetSpeed;
+      appliedForVideoId = getVideoIdFromUrl(location.href);
     };
 
     const handleVideoMetadata = () => {
@@ -470,6 +586,7 @@ export default defineContentScript({
       if (activeVideo) {
         void applySpeedForVideo(activeVideo);
       }
+      ensureChannelResolved();
       void recordChannelVisit();
     };
 
@@ -523,6 +640,7 @@ export default defineContentScript({
       activeVideo.addEventListener('timeupdate', handleTimeUpdate);
       activeVideo.addEventListener('pause', flushTimeSaved);
       void applySpeedForVideo(activeVideo);
+      ensureChannelResolved();
       void recordChannelVisit();
       notifyPorts();
     };
