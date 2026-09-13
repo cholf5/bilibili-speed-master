@@ -32,6 +32,22 @@ video. Identification therefore has two tiers:
      `a[href*="space.bilibili.com/"]` for the channel ID
    - `.up-info .up-name` or `.up-info__name` for the channel name
 
+## Rate-Change Classification (who changed the speed?)
+`ratechange` events reach `handleRateChange` from four kinds of sources:
+the extension's own applies (marked `programmaticRate`), extension user paths
+(keyboard `>`/`<`, popup stepper — flagged `lastUserIntentAt`), the player's
+speed control (flagged by a `pointerdown` listener on
+`.bpx-player-ctrl-playbackrate` and legacy selectors), and Bilibili's
+automatic behavior. The automatic case matters: Bilibili's player remembers
+the last speed set through its own UI site-wide and re-applies it to new
+videos seconds after they start (outside the 500ms media-load guard).
+
+Handling:
+- Unexplained rate changes (no recent user-intent flag) within 6s of
+  `loadstart` are treated as player-init noise: reverted to the authoritative
+  channel target and never persisted.
+- Everything else persists as a channel override, as before.
+
 Note: `window.__INITIAL_STATE__` is invisible to isolated-world content
 scripts in Chrome, so the documented structured-data path from earlier
 revisions is dead code and was removed from the flow (see B-1 notes).

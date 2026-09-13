@@ -10,12 +10,23 @@ const VOLUME_STEP = 0.05;
 const FRAME_STEP = 1 / 30;
 const TIME_SAVE_FLUSH_MS = 3000;
 const MEDIA_LOAD_GUARD_MS = 500;
+// Bilibili's player can re-apply its own globally remembered speed seconds
+// after a video starts (outside the 500ms media-load guard); unexplained rate
+// changes in this window are treated as player init, not user intent.
+const PLAYER_INIT_GRACE_MS = 6000;
+const USER_INTENT_WINDOW_MS = 2000;
 const TIME_UPDATE_MAX_DELTA_S = 2;
 const QUALITY_APPLY_DELAY_MS = 1200;
 // SPA transitions swap the media seconds before the DOM's UP link updates, so
 // channel identity for /video/ pages is resolved authoritatively from the view
 // API (keyed by the URL's video id, which updates together with the media).
 const VIEW_API_URL = 'https://api.bilibili.com/x/web-interface/view';
+
+// The player's own speed control (menu items and the slider live inside this
+// container); touching it counts as user intent even though the resulting
+// ratechange itself is indistinguishable from Bilibili's automatic restores.
+const SPEED_CONTROL_SELECTOR =
+  '.bpx-player-ctrl-playbackrate, .bilibili-player-video-btn-speed, .squirtle-speed-select';
 
 type ChannelInfo = {
   channelId: string;
@@ -225,6 +236,11 @@ export default defineContentScript({
     let appliedForVideoId: string | null = null;
     const authoritativeChannels = new Map<string, ChannelInfo>();
     const pendingResolves = new Map<string, Promise<ChannelInfo | null>>();
+    // Timestamp of the last speed change that came from a known user path
+    // (extension shortcuts, popup stepper, or the player's own speed control);
+    // lets handleRateChange tell user intent apart from player-init noise.
+    let lastUserIntentAt = 0;
+    let playerInitUntil = 0;
 
     const clearProgrammaticRate = () => {
       if (programmaticRateTimer !== null) {
@@ -236,6 +252,7 @@ export default defineContentScript({
 
     const markMediaLoadGuard = () => {
       mediaLoadGuardUntil = Date.now() + MEDIA_LOAD_GUARD_MS;
+      playerInitUntil = Date.now() + PLAYER_INIT_GRACE_MS;
     };
 
     const getAuthoritativeChannel = (): ChannelInfo | null => {
@@ -359,6 +376,17 @@ export default defineContentScript({
 
       const channel = getCurrentChannel();
       if (!channel) {
+        return;
+      }
+
+      // Inside the player-init window an unexplained rate change is Bilibili's
+      // own doing (e.g. restoring its globally remembered speed), not user
+      // intent: it must neither overwrite the channel override nor be
+      // persisted as one, so re-assert the target speed instead. Changes
+      // through the player's speed control set lastUserIntentAt and pass.
+      const userIntentRecent = Date.now() - lastUserIntentAt < USER_INTENT_WINDOW_MS;
+      if (!userIntentRecent && Date.now() < playerInitUntil) {
+        void applySpeedForVideo(activeVideo);
         return;
       }
 
@@ -664,6 +692,7 @@ export default defineContentScript({
         }
         if (message?.type === 'speed-master:set-current-speed') {
           if (activeVideo && typeof message.speed === 'number') {
+            lastUserIntentAt = Date.now();
             applyPlaybackRate(activeVideo, message.speed);
           }
           sendResponse({ ok: Boolean(activeVideo) });
@@ -702,6 +731,7 @@ export default defineContentScript({
           }
           if (message?.type === 'speed-master:set-current-speed') {
             if (activeVideo && typeof message.speed === 'number') {
+              lastUserIntentAt = Date.now();
               applyPlaybackRate(activeVideo, message.speed);
             }
           }
@@ -824,6 +854,7 @@ export default defineContentScript({
 
       if (key === '>' || key === '<') {
         consume(event);
+        lastUserIntentAt = Date.now();
         const delta = key === '>' ? KEYBOARD_SPEED_STEP : -KEYBOARD_SPEED_STEP;
         applyPlaybackRate(activeVideo, activeVideo.playbackRate + delta);
         return;
@@ -905,6 +936,13 @@ export default defineContentScript({
     syncManagedVideo();
 
     window.addEventListener('keydown', handleKeydown, true);
+
+    document.addEventListener('pointerdown', (event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest(SPEED_CONTROL_SELECTOR)) {
+        lastUserIntentAt = Date.now();
+      }
+    }, true);
 
     const storageOnChanged = (() => {
       const root = globalThis as typeof globalThis & {
