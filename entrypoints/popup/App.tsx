@@ -1,6 +1,6 @@
 import './App.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { getConfig, updateConfig, type SpeedMasterConfig } from '@/src/shared/config';
+import { STORAGE_KEY, getConfig, updateConfig, type SpeedMasterConfig } from '@/src/shared/config';
 import { t } from '@/src/shared/i18n';
 
 const SPEED_STEP = 0.1;
@@ -15,6 +15,43 @@ const formatSpeed = (value: number) => {
   return Number(rounded.toFixed(2)).toString();
 };
 
+type CurrentChannel = {
+  channelId: string;
+  channelName: string;
+  avatarUrl?: string;
+};
+
+const normalizeAvatarUrl = (url?: string | null): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+  return url.startsWith('//') ? `https:${url}` : url;
+};
+
+const fetchCurrentChannel = async (): Promise<CurrentChannel | null> => {
+  const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+  const tabsApi = root.browser?.tabs ?? root.chrome?.tabs ?? null;
+  if (!tabsApi?.query || !tabsApi?.sendMessage) {
+    return null;
+  }
+
+  try {
+    const tabs = await tabsApi.query({ active: true, currentWindow: true });
+    const tabId = tabs?.[0]?.id;
+    if (!tabId) {
+      return null;
+    }
+    const response = await tabsApi.sendMessage(tabId, {
+      type: 'speed-master:get-current-channel',
+    });
+    return response?.channel ?? null;
+  } catch {
+    // Content script not available (not a video page, or tabs opened before
+    // the extension was installed).
+    return null;
+  }
+};
+
 const QUALITY_OPTIONS = [
   { value: 'auto', label: 'Auto' },
   { value: '1080p', label: '1080p' },
@@ -26,10 +63,29 @@ const QUALITY_OPTIONS = [
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
   const [currentSpeed, setCurrentSpeed] = useState<number | null>(null);
+  const [channel, setChannel] = useState<CurrentChannel | null>(null);
   const portRef = useRef<any>(null);
 
   useEffect(() => {
     getConfig().then(setConfig);
+    void fetchCurrentChannel().then(setChannel);
+  }, []);
+
+  // Channel-card speed changes persist through the content script's
+  // ratechange path, so config must be reloaded when storage moves.
+  useEffect(() => {
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const api = root.browser?.storage?.onChanged ?? root.chrome?.storage?.onChanged ?? null;
+    if (!api?.addListener) {
+      return;
+    }
+    const listener = (changes: Record<string, any>, areaName: string) => {
+      if (areaName === 'sync' && changes?.[STORAGE_KEY]) {
+        void getConfig().then(setConfig);
+      }
+    };
+    api.addListener(listener);
+    return () => api.removeListener(listener);
   }, []);
 
   const hoursSaved = useMemo(() => {
@@ -192,6 +248,14 @@ function App() {
   const defaultSpeed = config?.global.defaultSpeed ?? 1;
   const preferredQuality = config?.global.preferredQuality ?? 'auto';
 
+  // Tells the user where the channel's effective speed comes from: a stored
+  // channel override or the global default.
+  const channelSpeedMeta = channel
+    ? config?.channels[channel.channelId]
+      ? `${t('channelOverride')} · ${formatSpeed(config.channels[channel.channelId].speed)}`
+      : `${t('followingGlobal')} · ${formatSpeed(defaultSpeed)}`
+    : '';
+
   return (
     <div className="popup">
       <header className="popup__header">
@@ -222,30 +286,48 @@ function App() {
         </a>
       </header>
 
-      <section className="panel">
-        <div className="row">
-          <div className="row__label">{t('currentSpeed')}</div>
-          <div className="stepper">
-            <button
-              type="button"
-              onClick={() => changeCurrentSpeed(-SPEED_STEP)}
-              aria-label="Decrease speed"
-            >
-              -
-            </button>
-            {/* Unknown until the content script reports a rate (e.g. tabs
-                opened before the extension was installed); never show the
-                default speed here, it would look like a real reading. */}
-            <span>{currentSpeed === null ? '–' : formatSpeed(currentSpeed)}</span>
-            <button
-              type="button"
-              onClick={() => changeCurrentSpeed(SPEED_STEP)}
-              aria-label="Increase speed"
-            >
-              +
-            </button>
+      {channel && (
+        <section className="channel-card">
+          <div className="channel-card__label">{t('currentChannel')}</div>
+          <div className="channel-card__row">
+            <div className="channel-card__avatar">
+              {normalizeAvatarUrl(channel.avatarUrl) ? (
+                <img src={normalizeAvatarUrl(channel.avatarUrl)} alt="" />
+              ) : (
+                <span>{channel.channelName.slice(0, 1)}</span>
+              )}
+            </div>
+            <div className="channel-card__text">
+              <span className="channel-card__name" title={channel.channelName}>
+                {channel.channelName}
+              </span>
+              <span className="channel-card__meta">{channelSpeedMeta}</span>
+            </div>
+            <div className="stepper">
+              <button
+                type="button"
+                onClick={() => changeCurrentSpeed(-SPEED_STEP)}
+                aria-label="Decrease speed for this channel"
+              >
+                -
+              </button>
+              {/* Unknown until the content script reports a rate (e.g. tabs
+                  opened before the extension was installed); never show the
+                  default speed here, it would look like a real reading. */}
+              <span>{currentSpeed === null ? '–' : formatSpeed(currentSpeed)}</span>
+              <button
+                type="button"
+                onClick={() => changeCurrentSpeed(SPEED_STEP)}
+                aria-label="Increase speed for this channel"
+              >
+                +
+              </button>
+            </div>
           </div>
-        </div>
+        </section>
+      )}
+
+      <section className="panel">
         <div className="row">
           <div className="row__label">{t('defaultSpeed')}</div>
           <div className="stepper">

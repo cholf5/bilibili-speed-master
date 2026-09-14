@@ -89,6 +89,72 @@
   background: #262626;
 }
 
+.channel-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #26313d;
+  border: 1px solid rgba(62, 166, 255, 0.45);
+}
+
+.channel-card__label {
+  font-size: 11px;
+  color: #78b8ff;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.channel-card__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.channel-card__avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #101215;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.channel-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.channel-card__text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.channel-card__name {
+  font-size: 13px;
+  color: #f5f7ff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.channel-card__meta {
+  font-size: 11px;
+  color: #9aa4b6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .row {
   display: grid;
   grid-template-columns: 1fr auto;

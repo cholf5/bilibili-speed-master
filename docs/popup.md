@@ -59,38 +59,26 @@ Below is a structured UI reverse-engineering description based on the provided s
 
 ---
 
-### 2.2 Speed Control Panel
+### 2.2 Current Channel Card (contextual)
 
-Each row follows the same pattern.
+* **Visibility**: Rendered only when the active tab is a Bilibili video page and the
+  current channel is known; hidden otherwise, so it never competes with Global Speed.
+* **Look**: Distinct sub-card with a blue-tinted background and border, separated from
+  the settings panel below.
+* **Label**: `This channel` (small, blue, uppercase)
+* **Row content**:
+  * Left: circular channel avatar (fallback: first character of the channel name) and a
+    two-line text block — the channel name (truncated with ellipsis) plus a small gray
+    meta line stating where the channel's effective speed comes from:
+    `Override · 1.5x` when the channel has a stored override, or `Following global · 1.0x`
+    when it inherits the global default. The meta line refreshes live via storage changes
+  * Right: stepper control (`-` / current video speed / `+`) that adjusts the speed of
+    the video currently playing in that tab; the change is persisted as the channel
+    override through the same user-intent path as the in-video widget
 
-#### Row 1: Current Speed
+### 2.2.1 Speed Control Panel (global settings)
 
-* **Label**
-
-  * Text: `Current Speed`
-  * Position: Left column
-  * Color: White
-  * Font size: Standard body size
-
-* **Stepper Control**
-
-  * Position: Right column
-  * Structure (horizontal):
-
-    1. Minus button (`-`)
-    2. Value display (`1`)
-    3. Plus button (`+`)
-  * Buttons:
-
-    * Shape: Rounded rectangles
-    * Background: Slightly lighter dark gray than page background
-    * Text color: White
-  * Value display:
-
-    * Centered text
-    * Same height as buttons
-
-#### Row 2: Global Speed
+#### Row: Global Speed
 
 * **Label**
 

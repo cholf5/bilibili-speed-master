@@ -17,6 +17,11 @@ const en: Messages = {
   noOverrides: 'No channel overrides yet.',
   export: 'Export Settings',
   import: 'Import Settings',
+  showVideoWidget: 'Show speed widget on video',
+  widgetPosition: 'Widget position',
+  currentChannel: 'This channel',
+  channelOverride: 'Override',
+  followingGlobal: 'Following global',
 };
 
 const zhCN: Messages = {
@@ -36,6 +41,11 @@ const zhCN: Messages = {
   noOverrides: '暂无频道覆盖设置。',
   export: '导出设置',
   import: '导入设置',
+  showVideoWidget: '在视频上显示倍速控件',
+  widgetPosition: '控件位置',
+  currentChannel: '当前频道',
+  channelOverride: '覆盖',
+  followingGlobal: '跟随全局',
 };
 
 const zhTW: Messages = {
@@ -55,6 +65,11 @@ const zhTW: Messages = {
   noOverrides: '尚無頻道覆寫設定。',
   export: '匯出設定',
   import: '匯入設定',
+  showVideoWidget: '在影片上顯示倍速控件',
+  widgetPosition: '控件位置',
+  currentChannel: '目前頻道',
+  channelOverride: '覆寫',
+  followingGlobal: '跟隨全域',
 };
 
 const ja: Messages = {
@@ -74,6 +89,11 @@ const ja: Messages = {
   noOverrides: 'チャンネルの上書き設定はまだありません。',
   export: '設定をエクスポート',
   import: '設定をインポート',
+  showVideoWidget: '動画に速度コントロールを表示',
+  widgetPosition: 'ウィジェットの位置',
+  currentChannel: 'このチャンネル',
+  channelOverride: '上書き',
+  followingGlobal: 'グローバルに従う',
 };
 
 const ko: Messages = {
@@ -93,6 +113,11 @@ const ko: Messages = {
   noOverrides: '채널별 설정이 아직 없습니다.',
   export: '설정 내보내기',
   import: '설정 가져오기',
+  showVideoWidget: '동영상에 속도 컨트롤 표시',
+  widgetPosition: '위젯 위치',
+  currentChannel: '이 채널',
+  channelOverride: '재정의',
+  followingGlobal: '전역 속도 따름',
 };
 
 const es: Messages = {
@@ -112,6 +137,11 @@ const es: Messages = {
   noOverrides: 'Aún no hay ajustes por canal.',
   export: 'Exportar configuración',
   import: 'Importar configuración',
+  showVideoWidget: 'Mostrar control de velocidad en el vídeo',
+  widgetPosition: 'Posición del widget',
+  currentChannel: 'Este canal',
+  channelOverride: 'Anulación',
+  followingGlobal: 'Siguiendo el global',
 };
 
 const fr: Messages = {
@@ -131,6 +161,11 @@ const fr: Messages = {
   noOverrides: "Aucune règle par chaîne pour l'instant.",
   export: 'Exporter les paramètres',
   import: 'Importer les paramètres',
+  showVideoWidget: 'Afficher le contrôle de vitesse sur la vidéo',
+  widgetPosition: 'Position du widget',
+  currentChannel: 'Cette chaîne',
+  channelOverride: 'Spécifique',
+  followingGlobal: 'Vitesse globale',
 };
 
 const de: Messages = {
@@ -150,6 +185,11 @@ const de: Messages = {
   noOverrides: 'Noch keine Kanal-Überschreibungen.',
   export: 'Einstellungen exportieren',
   import: 'Einstellungen importieren',
+  showVideoWidget: 'Geschwindigkeits-Widget im Video anzeigen',
+  widgetPosition: 'Widget-Position',
+  currentChannel: 'Dieser Kanal',
+  channelOverride: 'Überschrieben',
+  followingGlobal: 'Globale Geschwindigkeit',
 };
 
 const ru: Messages = {
@@ -169,6 +209,11 @@ const ru: Messages = {
   noOverrides: 'Настроек по каналам пока нет.',
   export: 'Экспорт настроек',
   import: 'Импорт настроек',
+  showVideoWidget: 'Показывать виджет скорости на видео',
+  widgetPosition: 'Положение виджета',
+  currentChannel: 'Этот канал',
+  channelOverride: 'Переопределено',
+  followingGlobal: 'Как глобальная',
 };
 
 const ptBR: Messages = {
@@ -188,6 +233,11 @@ const ptBR: Messages = {
   noOverrides: 'Ainda não há ajustes por canal.',
   export: 'Exportar configurações',
   import: 'Importar configurações',
+  showVideoWidget: 'Mostrar controle de velocidade no vídeo',
+  widgetPosition: 'Posição do widget',
+  currentChannel: 'Este canal',
+  channelOverride: 'Personalizado',
+  followingGlobal: 'Seguindo o global',
 };
 
 const it: Messages = {
@@ -207,6 +257,11 @@ const it: Messages = {
   noOverrides: 'Nessuna preferenza per canale.',
   export: 'Esporta impostazioni',
   import: 'Importa impostazioni',
+  showVideoWidget: 'Mostra il controllo della velocità sul video',
+  widgetPosition: 'Posizione del widget',
+  currentChannel: 'Questo canale',
+  channelOverride: 'Personalizzato',
+  followingGlobal: 'Segue il globale',
 };
 
 const tr: Messages = {
@@ -226,6 +281,11 @@ const tr: Messages = {
   noOverrides: 'Henüz kanal ayarı yok.',
   export: 'Ayarları dışa aktar',
   import: 'Ayarları içe aktar',
+  showVideoWidget: 'Videoda hız denetimini göster',
+  widgetPosition: 'Widget konumu',
+  currentChannel: 'Bu kanal',
+  channelOverride: 'Özel',
+  followingGlobal: 'Global hızı takip',
 };
 
 const vi: Messages = {
@@ -245,6 +305,11 @@ const vi: Messages = {
   noOverrides: 'Chưa có ghi đè theo kênh.',
   export: 'Xuất cài đặt',
   import: 'Nhập cài đặt',
+  showVideoWidget: 'Hiện điều khiển tốc độ trên video',
+  widgetPosition: 'Vị trí widget',
+  currentChannel: 'Kênh này',
+  channelOverride: 'Riêng',
+  followingGlobal: 'Theo tốc độ toàn cục',
 };
 
 const th: Messages = {
@@ -264,6 +329,11 @@ const th: Messages = {
   noOverrides: 'ยังไม่มีการตั้งค่าตามช่อง',
   export: 'ส่งออกการตั้งค่า',
   import: 'นำเข้าการตั้งค่า',
+  showVideoWidget: 'แสดงตัวควบคุมความเร็วบนวิดีโอ',
+  widgetPosition: 'ตำแหน่งวิดเจ็ต',
+  currentChannel: 'ช่องนี้',
+  channelOverride: 'ค่าเฉพาะ',
+  followingGlobal: 'ตามความเร็วทั่วไป',
 };
 
 const id: Messages = {
@@ -283,6 +353,11 @@ const id: Messages = {
   noOverrides: 'Belum ada pengaturan per saluran.',
   export: 'Ekspor pengaturan',
   import: 'Impor pengaturan',
+  showVideoWidget: 'Tampilkan kontrol kecepatan pada video',
+  widgetPosition: 'Posisi widget',
+  currentChannel: 'Saluran ini',
+  channelOverride: 'Khusus',
+  followingGlobal: 'Mengikuti global',
 };
 
 const ar: Messages = {
@@ -302,6 +377,11 @@ const ar: Messages = {
   noOverrides: 'لا توجد إعدادات للقنوات بعد.',
   export: 'تصدير الإعدادات',
   import: 'استيراد الإعدادات',
+  showVideoWidget: 'إظهار أداة التحكم في السرعة على الفيديو',
+  widgetPosition: 'موضع الأداة',
+  currentChannel: 'هذه القناة',
+  channelOverride: 'مخصص',
+  followingGlobal: 'يتبع السرعة العامة',
 };
 
 const hi: Messages = {
@@ -321,6 +401,11 @@ const hi: Messages = {
   noOverrides: 'अभी तक चैनल ओवरराइड नहीं हैं।',
   export: 'सेटिंग्स निर्यात करें',
   import: 'सेटिंग्स आयात करें',
+  showVideoWidget: 'वीडियो पर स्पीड विजेट दिखाएँ',
+  widgetPosition: 'विजेट की स्थिति',
+  currentChannel: 'यह चैनल',
+  channelOverride: 'अलग सेटिंग',
+  followingGlobal: 'ग्लोबल गति का पालन',
 };
 
 const pl: Messages = {
@@ -340,6 +425,11 @@ const pl: Messages = {
   noOverrides: 'Brak ustawień dla kanałów.',
   export: 'Eksportuj ustawienia',
   import: 'Importuj ustawienia',
+  showVideoWidget: 'Pokaż widżet prędkości na wideo',
+  widgetPosition: 'Pozycja widgetu',
+  currentChannel: 'Ten kanał',
+  channelOverride: 'Własna',
+  followingGlobal: 'Zgodnie z globalną',
 };
 
 type Locale =

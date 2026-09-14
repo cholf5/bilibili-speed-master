@@ -11,6 +11,8 @@ export type SpeedMasterConfig = {
   global: {
     defaultSpeed: number;
     preferredQuality: string;
+    showVideoWidget: boolean;
+    videoWidgetPosition: 'topLeft' | 'topRight';
   };
   channels: Record<string, ChannelOverride>;
   stats: {
@@ -25,6 +27,8 @@ export const DEFAULT_CONFIG: SpeedMasterConfig = {
   global: {
     defaultSpeed: 1,
     preferredQuality: 'auto',
+    showVideoWidget: true,
+    videoWidgetPosition: 'topLeft',
   },
   channels: {},
   stats: {
@@ -64,6 +68,14 @@ const mergeConfig = (raw: any): SpeedMasterConfig => {
         typeof global.preferredQuality === 'string'
           ? global.preferredQuality
           : DEFAULT_CONFIG.global.preferredQuality,
+      showVideoWidget:
+        typeof global.showVideoWidget === 'boolean'
+          ? global.showVideoWidget
+          : DEFAULT_CONFIG.global.showVideoWidget,
+      videoWidgetPosition:
+        global.videoWidgetPosition === 'topLeft' || global.videoWidgetPosition === 'topRight'
+          ? global.videoWidgetPosition
+          : DEFAULT_CONFIG.global.videoWidgetPosition,
     },
     channels: raw.channels && typeof raw.channels === 'object' ? raw.channels : {},
     stats: {

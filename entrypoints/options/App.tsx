@@ -176,6 +176,16 @@ function App() {
     void updateGlobal({ preferredQuality: event.target.value });
   };
 
+  const handleWidgetToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
+    void updateGlobal({ showVideoWidget: event.target.checked });
+  };
+
+  const handleWidgetPositionChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    if (event.target.value === 'topLeft' || event.target.value === 'topRight') {
+      void updateGlobal({ videoWidgetPosition: event.target.value });
+    }
+  };
+
   const updateChannel = async (channelId: string, patch: Partial<ChannelOverride>) => {
     const next = await updateConfig((current) => {
       const existing = current.channels[channelId];
@@ -294,6 +304,29 @@ function App() {
               </option>
             ))}
           </select>
+        </div>
+        <div className="card">
+          <div className="card__label">{t('showVideoWidget')}</div>
+          <label className="switch">
+            <input
+              type="checkbox"
+              checked={config?.global.showVideoWidget ?? true}
+              onChange={handleWidgetToggle}
+            />
+            <span className="switch__track" aria-hidden="true" />
+          </label>
+          <div className="card__sub">
+            <span>{t('widgetPosition')}</span>
+            <select
+              className="select select--compact"
+              value={config?.global.videoWidgetPosition ?? 'topLeft'}
+              onChange={handleWidgetPositionChange}
+              disabled={!(config?.global.showVideoWidget ?? true)}
+            >
+              <option value="topLeft">Top left</option>
+              <option value="topRight">Top right</option>
+            </select>
+          </div>
         </div>
       </section>
 
