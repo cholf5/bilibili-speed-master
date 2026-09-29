@@ -1,6 +1,8 @@
 # Storage Schema and Config Access
 
-This project stores user settings in `chrome.storage.sync` under a single key.
+User settings live in `chrome.storage.sync` under a single key; saved-time
+statistics live in `chrome.storage.local` under their own key (see
+"Stats in storage.local" below).
 
 ## Storage Key
 - Key: `bilibiliSpeedMaster`
@@ -64,6 +66,36 @@ parseable `lastVisit` count as oldest).
 `storage.sync` write failures are reported via `console.warn` (callback-style
 writes check `chrome.runtime.lastError`; promise-style writes catch the
 rejection) instead of failing silently.
+
+## Stats in storage.local (D-1)
+`stats.timeSavedSeconds` is device-local data with no cross-device sync value,
+so it no longer rides the sync config blob (whose
+MAX_WRITE_OPERATIONS_PER_HOUR quota the old ~3s flush used to exhaust).
+
+- Key: `bilibiliSpeedMasterStats`
+- Area: `chrome.storage.local`
+- Value: `{ timeSavedSeconds: number }`
+- Helpers: `getSavedStats()` and `updateSavedStats(updater)` in
+  `src/shared/stats.ts` (read-modify-write; values that are not finite
+  non-negative numbers degrade to 0).
+
+### Migration
+Stats used to be stored inside the sync config's `stats` field. The first
+stats access in a context — read or write, `getSavedStats()` or
+`updateSavedStats()` — merges the legacy sync value into local with `max`
+semantics (the larger value wins), so no data is lost on upgrade and new
+accumulation after an extension update stacks on top of the legacy total.
+The check is memoized per context (the migration promise is cached), so it
+runs once and later calls, including every 30s flush, cost no extra sync
+read. The migration is idempotent — repeated or concurrent (multi-tab) calls
+are safe. The legacy sync value is left untouched (nothing reads it
+afterwards, so no destructive write is needed), and the
+`SpeedMasterConfig.stats` field is kept for old-version import compatibility
+only; runtime reads and writes no longer go through it.
+
+`storage.local` has no write-operations quota, but failed writes still surface
+via `console.warn` (`[speed-master]` prefix), matching the sync failure
+reporting in the Channels Cap section above.
 
 ## Notes
 - All schema changes should bump `version` and add migration logic.

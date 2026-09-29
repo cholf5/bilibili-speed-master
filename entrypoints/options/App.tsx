@@ -7,6 +7,7 @@ import {
   type ChannelOverride,
   type SpeedMasterConfig,
 } from '@/src/shared/config';
+import { STATS_STORAGE_KEY, getSavedStats, updateSavedStats } from '@/src/shared/stats';
 import { t } from '@/src/shared/i18n';
 
 const SPEED_STEP = 0.1;
@@ -53,10 +54,29 @@ const formatTimestamp = (value?: string) => {
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
   const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
+  const [timeSavedSeconds, setTimeSavedSeconds] = useState(0);
   const avatarUrlsRef = useRef<string[]>([]);
 
   useEffect(() => {
     getConfig().then(setConfig);
+    // D-1: stats live in storage.local, not in the sync config.
+    void getSavedStats().then((stats) => setTimeSavedSeconds(stats.timeSavedSeconds));
+  }, []);
+
+  // D-1: refresh the stats display whenever the local stats key changes.
+  useEffect(() => {
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const api = root.browser?.storage?.onChanged ?? root.chrome?.storage?.onChanged ?? null;
+    if (!api?.addListener) {
+      return;
+    }
+    const listener = (changes: Record<string, any>, areaName: string) => {
+      if (areaName === 'local' && changes?.[STATS_STORAGE_KEY]) {
+        void getSavedStats().then((stats) => setTimeSavedSeconds(stats.timeSavedSeconds));
+      }
+    };
+    api.addListener(listener);
+    return () => api.removeListener(listener);
   }, []);
 
   useEffect(() => {
@@ -109,10 +129,10 @@ function App() {
     };
   }, [config]);
 
-  const hoursSaved = useMemo(() => {
-    const seconds = config?.stats.timeSavedSeconds ?? 0;
-    return (seconds / 3600).toFixed(3);
-  }, [config]);
+  const hoursSaved = useMemo(
+    () => (timeSavedSeconds / 3600).toFixed(3),
+    [timeSavedSeconds],
+  );
 
   const updateGlobal = async (patch: Partial<SpeedMasterConfig['global']>) => {
     const next = await updateConfig((current) => ({
@@ -126,8 +146,11 @@ function App() {
   };
 
   const exportConfig = async () => {
-    const current = await getConfig();
-    const blob = new Blob([JSON.stringify(current, null, 2)], {
+    // D-1: the file keeps its v1 shape (config + stats) for backward
+    // compatibility, but the stats section now comes from storage.local.
+    const [current, stats] = await Promise.all([getConfig(), getSavedStats()]);
+    const payload = { ...current, stats };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
       type: 'application/json',
     });
     const url = URL.createObjectURL(blob);
@@ -147,8 +170,18 @@ function App() {
 
     // Sanitize before persisting (D-3): mergeConfig validates global/stats and
     // every channel entry, and setConfig caps channels to the LRU limit (D-4).
-    const next = await updateConfig(() => mergeConfig(raw));
+    const merged = mergeConfig(raw);
+    const next = await updateConfig(() => merged);
     setConfig(next);
+
+    // D-1: stats live in storage.local now. Merge the imported value with max
+    // semantics so restoring an older backup cannot roll the counter
+    // backwards; the stats field inside the sync config is only kept for
+    // old-version import compatibility.
+    const stats = await updateSavedStats((current) => ({
+      timeSavedSeconds: Math.max(current.timeSavedSeconds, merged.stats.timeSavedSeconds),
+    }));
+    setTimeSavedSeconds(stats.timeSavedSeconds);
   };
 
   const handleImportClick = async () => {

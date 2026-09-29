@@ -13,7 +13,6 @@
 - D-16 可访问性修正（空格键豁免 + widget aria-label i18n）[P2]
 
 ## To Do
-- D-1 统计数据迁移 storage.local 并降低 sync 写入频率（P0）
 - D-2 消除跨上下文配置写入竞态（P0）
 - D-5 options lastVisit 显示本地时间（P1）
 - 
@@ -24,6 +23,7 @@
 - 
 
 ## Testing / QA
+- D-1 统计数据迁移 storage.local 并降低 sync 写入频率（dev + PM 评审打回一次已修复 + QA 完成；待用户真机验收）（P0）
 - D-15 引入 vitest 覆盖核心纯逻辑（dev + PM 评审 + QA 完成；64/64 用例绿；真机回归随 D-1/D-2 联调）（P3）
 - D-3 导入配置按 schema 校验（dev + PM 评审 + 程序化 QA 完成；待用户真机验收）（P0）
 - D-4 channels LRU 上限与清理（dev + PM 评审 + 程序化 QA 完成；待用户真机验收）（P1）

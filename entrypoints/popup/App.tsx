@@ -1,6 +1,7 @@
 import './App.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { STORAGE_KEY, getConfig, updateConfig, type SpeedMasterConfig } from '@/src/shared/config';
+import { STATS_STORAGE_KEY, getSavedStats } from '@/src/shared/stats';
 import { t } from '@/src/shared/i18n';
 
 const SPEED_STEP = 0.1;
@@ -64,10 +65,13 @@ function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
   const [currentSpeed, setCurrentSpeed] = useState<number | null>(null);
   const [channel, setChannel] = useState<CurrentChannel | null>(null);
+  const [timeSavedSeconds, setTimeSavedSeconds] = useState(0);
   const portRef = useRef<any>(null);
 
   useEffect(() => {
     getConfig().then(setConfig);
+    // D-1: stats live in storage.local, not in the sync config.
+    void getSavedStats().then((stats) => setTimeSavedSeconds(stats.timeSavedSeconds));
     void fetchCurrentChannel().then(setChannel);
   }, []);
 
@@ -88,10 +92,27 @@ function App() {
     return () => api.removeListener(listener);
   }, []);
 
-  const hoursSaved = useMemo(() => {
-    const seconds = config?.stats.timeSavedSeconds ?? 0;
-    return (seconds / 3600).toFixed(3);
-  }, [config]);
+  // D-1: refresh the stats display whenever the local stats key changes (the
+  // sync listener above stays for config updates).
+  useEffect(() => {
+    const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
+    const api = root.browser?.storage?.onChanged ?? root.chrome?.storage?.onChanged ?? null;
+    if (!api?.addListener) {
+      return;
+    }
+    const listener = (changes: Record<string, any>, areaName: string) => {
+      if (areaName === 'local' && changes?.[STATS_STORAGE_KEY]) {
+        void getSavedStats().then((stats) => setTimeSavedSeconds(stats.timeSavedSeconds));
+      }
+    };
+    api.addListener(listener);
+    return () => api.removeListener(listener);
+  }, []);
+
+  const hoursSaved = useMemo(
+    () => (timeSavedSeconds / 3600).toFixed(3),
+    [timeSavedSeconds],
+  );
 
   const updateGlobal = async (patch: Partial<SpeedMasterConfig['global']>) => {
     const next = await updateConfig((current) => ({

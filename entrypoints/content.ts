@@ -1,4 +1,5 @@
-import { getConfig, setConfig, updateConfig, STORAGE_KEY } from '@/src/shared/config';
+import { getConfig, setConfig, STORAGE_KEY } from '@/src/shared/config';
+import { updateSavedStats } from '@/src/shared/stats';
 import { computeTimeSaved, getVideoIdFromUrl, sanitizeChannelName } from '@/src/shared/video';
 
 const URL_POLL_INTERVAL_MS = 800;
@@ -9,7 +10,10 @@ const SEEK_STEP_SMALL = 5;
 const SEEK_STEP_LARGE = 10;
 const VOLUME_STEP = 0.05;
 const FRAME_STEP = 1 / 30;
-const TIME_SAVE_FLUSH_MS = 3000;
+// Stats live in storage.local (D-1) with no write-ops quota, but the flush is
+// still throttled to 30s to keep storage traffic low; pause / visibilitychange
+// / pagehide / beforeunload flushes bound the loss window.
+const TIME_SAVE_FLUSH_MS = 30000;
 const MEDIA_LOAD_GUARD_MS = 500;
 const WIDGET_CLASS = 'speed-master-widget';
 const PLAYER_CONTAINER_SELECTOR = '.bpx-player-container, .bilibili-player';
@@ -761,12 +765,10 @@ export default defineContentScript({
       }
       const delta = timeSavedBuffer;
       timeSavedBuffer = 0;
-      await updateConfig((current) => ({
-        ...current,
-        stats: {
-          ...current.stats,
-          timeSavedSeconds: current.stats.timeSavedSeconds + delta,
-        },
+      // D-1: stats persist to storage.local via the dedicated stats module,
+      // no longer through the sync config blob.
+      await updateSavedStats((current) => ({
+        timeSavedSeconds: current.timeSavedSeconds + delta,
       }));
     };
 
@@ -1175,6 +1177,8 @@ export default defineContentScript({
 
     if (storageOnChanged) {
       storageOnChanged.addListener((changes: Record<string, any>, areaName: string) => {
+        // Deliberately sync-only (D-1): local-area stats writes must never
+        // re-trigger the applySpeedForVideo/applyPreferredQuality chain.
         if (areaName !== 'sync' || !changes?.[STORAGE_KEY]) {
           return;
         }
