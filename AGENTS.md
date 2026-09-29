@@ -21,9 +21,10 @@
 - No formatter or linter is configured yet; keep changes consistent with existing style.
 
 ## Testing Guidelines
-- No automated test framework is currently set up.
-- Use `pnpm compile` for type safety checks.
-- If you add tests, document the runner and naming pattern (for example, `*.test.ts` or `*.spec.ts`) in this file.
+- Vitest is the test runner; config lives in `vitest.config.ts` (repo root, alongside `wxt.config.ts`) and keeps the WXT `@/` path alias working in tests.
+- Run tests with `pnpm test` (single run, `vitest run`); use `npx vitest` for watch mode.
+- Test files are named `*.test.ts` and colocated next to the code they cover (for example, `src/shared/config.test.ts`).
+- The suite covers pure logic only (node environment; no DOM, extension APIs, or jsdom). Use `pnpm compile` for type safety checks.
 
 ## Commit & Pull Request Guidelines
 - Commit messages use a short imperative style (for example, `Add ...`, `Fix ...`) with no scope prefixes.

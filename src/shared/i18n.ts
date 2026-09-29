@@ -452,7 +452,9 @@ type Locale =
   | 'hi'
   | 'pl';
 
-const messagesByLocale: Record<Locale, Messages> = {
+// Exported for the locale key-set consistency test (D-15); `t` remains the
+// only consumer at runtime.
+export const messagesByLocale: Record<Locale, Messages> = {
   en,
   'zh-CN': zhCN,
   'zh-TW': zhTW,

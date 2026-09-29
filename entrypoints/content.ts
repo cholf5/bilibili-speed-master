@@ -1,4 +1,5 @@
 import { getConfig, setConfig, updateConfig, STORAGE_KEY } from '@/src/shared/config';
+import { computeTimeSaved, getVideoIdFromUrl, sanitizeChannelName } from '@/src/shared/video';
 
 const URL_POLL_INTERVAL_MS = 800;
 const KEYBOARD_SPEED_STEP = 0.25;
@@ -44,23 +45,6 @@ const normalizeAvatarUrl = (url?: string | null): string | undefined => {
     return `https:${url}`;
   }
   return url;
-};
-
-const sanitizeChannelName = (name?: string | null): string => {
-  if (!name) {
-    return 'Unknown';
-  }
-  return name.replace(/\s+\d{4}-\d{2}-\d{2}$/, '').trim() || 'Unknown';
-};
-
-const getVideoIdFromUrl = (url: string): string | null => {
-  try {
-    const parsed = new URL(url);
-    const match = parsed.pathname.match(/\/video\/([^/]+)/);
-    return match?.[1] ?? null;
-  } catch {
-    return null;
-  }
 };
 
 const isManagedVideoPage = (): boolean => {
@@ -816,7 +800,7 @@ export default defineContentScript({
         return;
       }
 
-      const saved = (delta * (lastPlaybackRate - 1)) / lastPlaybackRate;
+      const saved = computeTimeSaved(delta, lastPlaybackRate);
       timeSavedBuffer += saved;
       scheduleTimeSaveFlush();
     };
