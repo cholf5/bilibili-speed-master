@@ -13,16 +13,17 @@
 - D-16 可访问性修正（空格键豁免 + widget aria-label i18n）[P2]
 
 ## To Do
-- D-5 options lastVisit 显示本地时间（P1）
 - 
 
 ## In Progress
+- D-5 options lastVisit 显示本地时间（本地时区格式化 + 单测完成，待评审）（P1）
 - D-2 消除跨上下文配置写入竞态（dev 完成 + PM 评审打回一次已修复）（P0）
 
 ## In Review
 - 
 
 ## Testing / QA
+- D-5 options lastVisit 显示本地时间（dev + PM 评审 + QA 完成；待用户真机验收）（P1）
 - D-2 消除配置写入竞态（拆 key + 写队列 + debounce；dev + PM 评审打回一次已修复 + QA 完成；待用户真机验收）（P0）
 - D-1 统计数据迁移 storage.local 并降低 sync 写入频率（dev + PM 评审打回一次已修复 + QA 完成；待用户真机验收）（P0）
 - D-15 引入 vitest 覆盖核心纯逻辑（dev + PM 评审 + QA 完成；64/64 用例绿；真机回归随 D-1/D-2 联调）（P3）

@@ -40,7 +40,10 @@ const normalizeAvatarUrl = (url?: string | null): string | undefined => {
   return url;
 };
 
-const formatTimestamp = (value?: string) => {
+// D-5: formatTimestamp used to print UTC via toISOString(), an 8-hour lie
+// for UTC+8 users. Build the same YYYY-MM-DD HH:mm:ss shape from local
+// components instead; invalid/missing timestamps still render '-'.
+export const formatTimestamp = (value?: string) => {
   if (!value) {
     return '-';
   }
@@ -48,7 +51,10 @@ const formatTimestamp = (value?: string) => {
   if (Number.isNaN(date.getTime())) {
     return '-';
   }
-  return date.toISOString().replace('T', ' ').slice(0, 19);
+  const pad = (part: number, width = 2) => String(part).padStart(width, '0');
+  const day = `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  const time = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  return `${day} ${time}`;
 };
 
 function App() {
