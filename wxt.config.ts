@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'Bilibili Speed Master',
     description: 'Set a global default speed for bilibili videos with per-channel overrides.',
-    permissions: ['storage', 'tabs'],
+    permissions: ['storage'],
     host_permissions: ['*://*.bilibili.com/*'],
     options_ui: {
       page: 'options.html',

@@ -2,7 +2,6 @@
 
 ## Backlog
 - D-6 Content script 性能与健壮性清理（observer 节流 / unhandled rejection / config 缓存）[P1]
-- D-7 移除不需要的 tabs 权限 [P1]
 - D-8 发布元数据修正（package.json 名称版本 / 占位链接 / Firefox gecko id）[P1]
 - D-9 快捷键可配置 + options 快捷键清单 [P2]
 - D-10 popup 频道卡一键清除覆盖、跟随全局 [P2]
@@ -16,6 +15,7 @@
 - 
 
 ## In Progress
+- D-7 移除不需要的 tabs 权限（dev 完成：permissions 收敛为 ['storage']，双端 manifest + 测试 + 类型检查通过；待真机冒烟与评审）（P1）
 - D-5 options lastVisit 显示本地时间（本地时区格式化 + 单测完成，待评审）（P1）
 - D-2 消除跨上下文配置写入竞态（dev 完成 + PM 评审打回一次已修复）（P0）
 
@@ -23,6 +23,7 @@
 - 
 
 ## Testing / QA
+- D-7 移除不需要的 tabs 权限（dev + PM 评审 + QA 完成；待用户真机验收）（P1）
 - D-5 options lastVisit 显示本地时间（dev + PM 评审 + QA 完成；待用户真机验收）（P1）
 - D-2 消除配置写入竞态（拆 key + 写队列 + debounce；dev + PM 评审打回一次已修复 + QA 完成；待用户真机验收）（P0）
 - D-1 统计数据迁移 storage.local 并降低 sync 写入频率（dev + PM 评审打回一次已修复 + QA 完成；待用户真机验收）（P0）
