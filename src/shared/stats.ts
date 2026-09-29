@@ -3,7 +3,7 @@
 // own key instead of riding the sync config blob, whose hard
 // MAX_WRITE_OPERATIONS_PER_HOUR quota the previous ~3s flush used to exhaust.
 
-import { getConfig } from '@/src/shared/config';
+import { getConfig, removeLegacyConfigKeyOnce } from '@/src/shared/config';
 
 export const STATS_STORAGE_KEY = 'bilibiliSpeedMasterStats';
 
@@ -97,12 +97,28 @@ const readLocalSeconds = async (): Promise<number> => {
 // max semantics (the larger value wins), so nothing is lost on upgrade.
 // Re-running is a no-op once local >= legacy, which also makes concurrent
 // calls from multiple tabs safe — worst case both tabs write the same max
-// value. The legacy sync value is left untouched (nothing reads it
-// afterwards, so no destructive write is needed).
+// value.
+//
+// Legacy-key retirement (PM review fix for D-2): the legacy merged key
+// doubles as this migration's source, so it is retired HERE — strictly after
+// a successful migration — and never by config writes (config writes call
+// persistConfig, which does not touch it). Ordering guarantee: the migration's
+// read of the legacy key (getConfig below) always precedes the removal, so a
+// first config write landing before the 30s flush can no longer orphan the
+// legacy stats value. If anything in between throws, the removal line is
+// never reached and the key stays as the retry's source. Each context runs
+// its own memoized migration and its own once-flag; removal is idempotent, so
+// multi-tab needs no coordination — a tab whose migration runs after another
+// tab removed the key reads legacy=0 while the value already lives in local.
 const migrateLegacyStats = async (): Promise<void> => {
   const config = await getConfig();
   const legacy = sanitizeSeconds(config.stats?.timeSavedSeconds);
   if (legacy <= 0) {
+    // Nothing to migrate (fresh install or already-migrated data); the legacy
+    // key is obsolete either way, so retire it on this successful path too —
+    // removeLegacyConfigKeyOnce itself holds until the config split keys are
+    // in place, since the blob is still the global/channels read fallback.
+    await removeLegacyConfigKeyOnce();
     return;
   }
 
@@ -110,6 +126,9 @@ const migrateLegacyStats = async (): Promise<void> => {
   if (legacy > local) {
     await setInArea('local', { [STATS_STORAGE_KEY]: { timeSavedSeconds: legacy } });
   }
+  // Migration succeeded (the larger value now lives in local): the legacy key
+  // can be retired, subject to the same split-keys-in-place guard.
+  await removeLegacyConfigKeyOnce();
 };
 
 // Memoized one-shot migration (D-1, PM review fix): BOTH entry points go

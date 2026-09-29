@@ -7,19 +7,23 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 type MockArea = {
   data: Record<string, any>;
-  calls: { get: number; set: number };
+  calls: { get: number; set: number; remove: number };
+  removes: string[][];
   get: (keys: string | string[] | null, callback?: (items: any) => void) => any;
   set: (items: Record<string, any>, callback?: () => void) => any;
+  remove: (keys: string | string[], callback?: () => void) => any;
 };
 
-// Callback-style mock (get.length / set.length >= 2), matching the Chrome
-// callback API branch in both config.ts and stats.ts.
+// Callback-style mock (get.length / set.length / remove.length >= 2), matching
+// the Chrome callback API branch in both config.ts and stats.ts.
 const createMockArea = (initial: Record<string, any> = {}): MockArea => {
   const data: Record<string, any> = { ...initial };
-  const calls = { get: 0, set: 0 };
+  const calls = { get: 0, set: 0, remove: 0 };
+  const removes: string[][] = [];
   return {
     data,
     calls,
+    removes,
     get(keys, callback) {
       calls.get += 1;
       const keysList = (Array.isArray(keys) ? keys : [keys]).filter(
@@ -40,6 +44,21 @@ const createMockArea = (initial: Record<string, any> = {}): MockArea => {
     set(items, callback) {
       calls.set += 1;
       Object.assign(data, items);
+      if (callback) {
+        callback();
+        return;
+      }
+      return Promise.resolve();
+    },
+    remove(keys, callback) {
+      calls.remove += 1;
+      const keysList = (Array.isArray(keys) ? keys : [keys]).filter(
+        (key): key is string => typeof key === 'string',
+      );
+      removes.push(keysList);
+      for (const key of keysList) {
+        delete data[key];
+      }
       if (callback) {
         callback();
         return;
@@ -95,16 +114,38 @@ describe('getSavedStats', () => {
     await expect(stats.getSavedStats()).resolves.toEqual({ timeSavedSeconds: 42.5 });
   });
 
-  it('migrates a larger legacy sync value into local and leaves sync untouched', async () => {
+  it('migrates a larger legacy sync value into local and keeps the legacy key while the splits are missing', async () => {
     seedSyncConfig(100);
 
     await expect(stats.getSavedStats()).resolves.toEqual({ timeSavedSeconds: 100 });
 
     expect(mockLocal.data[stats.STATS_STORAGE_KEY]).toEqual({ timeSavedSeconds: 100 });
-    // The legacy sync blob is neither deleted nor zeroed: no sync write, and
-    // the stored value is preserved as-is.
+    // No sync write. (D-2 PM review fix) The legacy merged key survives this
+    // migration: the config split keys are not in place yet, so the blob is
+    // still the read fallback for global/channels. Its stats value has been
+    // consumed, and a later migration attempt (once the splits exist) retires
+    // the key.
     expect(mockSync.calls.set).toBe(0);
+    expect(mockSync.calls.remove).toBe(0);
     expect(mockSync.data[config.STORAGE_KEY].stats).toEqual({ timeSavedSeconds: 100 });
+  });
+
+  it('retires the legacy key after the migration when both config split keys are in place', async () => {
+    seedSyncConfig(100);
+    mockSync.data[config.GLOBAL_STORAGE_KEY] = {
+      version: 1,
+      global: { ...config.DEFAULT_CONFIG.global },
+    };
+    mockSync.data[config.CHANNELS_STORAGE_KEY] = { version: 1, channels: {} };
+
+    await expect(stats.getSavedStats()).resolves.toEqual({ timeSavedSeconds: 100 });
+
+    // The persisted local value proves the migration READ the legacy key
+    // before the removal ran (ordering guarantee from the D-2 review fix).
+    expect(mockLocal.data[stats.STATS_STORAGE_KEY]).toEqual({ timeSavedSeconds: 100 });
+    expect(mockSync.data[config.STORAGE_KEY]).toBeUndefined();
+    expect(mockSync.removes).toEqual([[config.STORAGE_KEY]]);
+    expect(mockSync.calls.set).toBe(0);
   });
 
   it('keeps the larger local value when legacy is smaller (max semantics)', async () => {
@@ -142,6 +183,9 @@ describe('getSavedStats', () => {
     seedSyncConfig('garbage');
     await expect(stats.getSavedStats()).resolves.toEqual({ timeSavedSeconds: 0 });
     expect(mockLocal.calls.set).toBe(0);
+    // The no-op migration does not retire the legacy key either while the
+    // config split keys are missing (it is still the read fallback).
+    expect(mockSync.data[config.STORAGE_KEY]).toBeDefined();
   });
 
   it('treats a NaN legacy sync value as 0 (it survives mergeConfig typeof check)', async () => {
@@ -224,8 +268,10 @@ describe('updateSavedStats', () => {
     // new delta stack instead of the max merge swallowing the delta later.
     expect(result).toEqual({ timeSavedSeconds: 105 });
     expect(mockLocal.data[stats.STATS_STORAGE_KEY]).toEqual({ timeSavedSeconds: 105 });
-    // Exactly one sync read (the migration check); sync is never written.
-    expect(mockSync.calls.get).toBe(1);
+    // Exactly one sync read for the migration itself, plus the removal
+    // attempt's split-keys check (the removal is skipped while the splits are
+    // missing — D-2 PM review fix); sync is never written.
+    expect(mockSync.calls.get).toBe(2);
     expect(mockSync.calls.set).toBe(0);
   });
 
@@ -252,6 +298,7 @@ describe('updateSavedStats', () => {
 describe('write failure handling', () => {
   it('proceeds and retries later when the migration itself fails', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const syncRemove = vi.fn();
     (globalThis as any).browser = {
       storage: {
         local: mockLocal,
@@ -260,6 +307,7 @@ describe('write failure handling', () => {
             throw new Error('sync unavailable');
           },
           set: () => {},
+          remove: syncRemove,
         },
       },
     };
@@ -271,10 +319,17 @@ describe('write failure handling', () => {
     await expect(stats.getSavedStats()).resolves.toEqual({ timeSavedSeconds: 0 });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0][0])).toContain('[speed-master]');
+    // A failed migration must not retire the legacy key: it is the retry's
+    // source (D-2 PM review fix).
+    expect(syncRemove).not.toHaveBeenCalled();
   });
 
   it('warns and resolves when the callback-style write reports lastError', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // Finish the (no-op) stats migration before staging the failure: the mock
+    // exposes chrome.runtime.lastError as one global, and the migration's
+    // legacy-key removal path must not be attributed to it.
+    await stats.getSavedStats();
     (globalThis as any).chrome = { runtime: { lastError: { message: 'quota exceeded' } } };
 
     const result = await stats.updateSavedStats((current) => ({

@@ -1,4 +1,9 @@
-import { getConfig, setConfig, STORAGE_KEY } from '@/src/shared/config';
+import {
+  CHANNELS_STORAGE_KEY,
+  GLOBAL_STORAGE_KEY,
+  getConfig,
+  updateConfig,
+} from '@/src/shared/config';
 import { updateSavedStats } from '@/src/shared/stats';
 import { computeTimeSaved, getVideoIdFromUrl, sanitizeChannelName } from '@/src/shared/video';
 
@@ -112,17 +117,14 @@ const getChannelInfo = (): ChannelInfo | null => {
   };
 };
 
-const updateConfigIfChanged = async (
+// D-2: the read-modify-write runs as ONE unit inside config.ts's write queue,
+// so a concurrent update in this context cannot interleave between the read
+// and the write. The reference-equality short-circuit (the updater returned
+// the config it read → storage already holds that state → no write) lives in
+// the queued updateConfig, keeping no-op calls from touching storage.
+const updateConfigIfChanged = (
   updater: (current: Awaited<ReturnType<typeof getConfig>>) => Awaited<ReturnType<typeof getConfig>>,
-) => {
-  const current = await getConfig();
-  const next = updater(current);
-  if (next === current) {
-    return current;
-  }
-  await setConfig(next);
-  return next;
-};
+) => updateConfig(updater);
 
 const applyPlaybackRate = (video: HTMLVideoElement, speed: number): void => {
   if (Number.isNaN(speed) || speed <= 0) {
@@ -334,6 +336,64 @@ export default defineContentScript({
       });
     };
 
+    // D-2: persisting the channel override is trailing-debounced so a slider
+    // drag (one ratechange per frame) coalesces into a single storage write
+    // carrying the final rate. Only THIS persistence is debounced: the gating
+    // above, the programmaticRate marking, and the player-init re-assert path
+    // still run on every event. The channel/speed captured here were already
+    // validated by that gating, so the flush persists exactly the last
+    // validated decision.
+    const RATE_PERSIST_DEBOUNCE_MS = 300;
+    let ratePersistTimer: number | null = null;
+    let runPendingRatePersist: (() => void) | null = null;
+
+    // Tab-close safety net: a pending debounced write must not die with the
+    // page — changing the speed and closing the tab right away would lose the
+    // override. Mounted alongside the stats flush on visibilitychange hidden
+    // / pagehide / beforeunload (see flushBufferedStats below).
+    const flushPendingRatePersist = () => {
+      if (ratePersistTimer !== null) {
+        window.clearTimeout(ratePersistTimer);
+        ratePersistTimer = null;
+      }
+      const run = runPendingRatePersist;
+      runPendingRatePersist = null;
+      run?.();
+    };
+
+    const scheduleRatePersist = (channel: ChannelInfo, speed: number) => {
+      runPendingRatePersist = () => {
+        void updateConfigIfChanged((config) => {
+          const existing = config.channels[channel.channelId];
+          if (
+            existing &&
+            existing.speed === speed &&
+            existing.channelName === channel.channelName &&
+            existing.avatarUrl === channel.avatarUrl
+          ) {
+            return config;
+          }
+          return {
+            ...config,
+            channels: {
+              ...config.channels,
+              [channel.channelId]: {
+                channelId: channel.channelId,
+                channelName: channel.channelName,
+                avatarUrl: channel.avatarUrl,
+                speed,
+                lastVisit: new Date().toISOString(),
+              },
+            },
+          };
+        });
+      };
+      if (ratePersistTimer !== null) {
+        window.clearTimeout(ratePersistTimer);
+      }
+      ratePersistTimer = window.setTimeout(flushPendingRatePersist, RATE_PERSIST_DEBOUNCE_MS);
+    };
+
     const handleRateChange = async () => {
       if (!activeVideo) {
         return;
@@ -389,30 +449,7 @@ export default defineContentScript({
       }
 
       const currentSpeed = activeVideo.playbackRate;
-      await updateConfigIfChanged((config) => {
-        const existing = config.channels[channel.channelId];
-        if (
-          existing &&
-          existing.speed === currentSpeed &&
-          existing.channelName === channel.channelName &&
-          existing.avatarUrl === channel.avatarUrl
-        ) {
-          return config;
-        }
-        return {
-          ...config,
-          channels: {
-            ...config.channels,
-            [channel.channelId]: {
-              channelId: channel.channelId,
-              channelName: channel.channelName,
-              avatarUrl: channel.avatarUrl,
-              speed: currentSpeed,
-              lastVisit: new Date().toISOString(),
-            },
-          },
-        };
-      });
+      scheduleRatePersist(channel, currentSpeed);
     };
 
     const recordChannelVisit = async () => {
@@ -1179,9 +1216,19 @@ export default defineContentScript({
       storageOnChanged.addListener((changes: Record<string, any>, areaName: string) => {
         // Deliberately sync-only (D-1): local-area stats writes must never
         // re-trigger the applySpeedForVideo/applyPreferredQuality chain.
-        if (areaName !== 'sync' || !changes?.[STORAGE_KEY]) {
+        // D-2: observe the two split keys; the legacy merged key is not
+        // watched (nothing writes it anymore after the first split write).
+        if (
+          areaName !== 'sync' ||
+          (!changes?.[GLOBAL_STORAGE_KEY] && !changes?.[CHANNELS_STORAGE_KEY])
+        ) {
           return;
         }
+        // No loop: our own writes fire this listener, applySpeedForVideo
+        // re-applies the target rate, and the programmaticRate marker (set
+        // before applyPlaybackRate) makes handleRateChange swallow the
+        // resulting ratechange events instead of persisting them — same
+        // absorption as before the key split.
         void applyWidgetSettings();
         if (activeVideo) {
           void applySpeedForVideo(activeVideo);
@@ -1223,6 +1270,10 @@ export default defineContentScript({
     }, URL_POLL_INTERVAL_MS);
 
     const flushBufferedStats = () => {
+      // D-2: a pending debounced channel-override write flushes here alongside
+      // the buffered stats, so it survives pagehide / visibilitychange hidden
+      // / beforeunload.
+      flushPendingRatePersist();
       void flushTimeSaved();
     };
 

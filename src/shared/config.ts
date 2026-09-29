@@ -20,7 +20,17 @@ export type SpeedMasterConfig = {
   };
 };
 
+// D-2: the sync config is split into two per-partition keys so a stale
+// full-config write to one partition can no longer be triggered by (or stack
+// on top of) the other partition's traffic, and the tiny global item never
+// fails the per-item sync quota because of a large channels record.
+// STORAGE_KEY is the legacy pre-D-2 merged blob: it is still read as a
+// fallback (upgrades stay invisible to the user) and is retired only by the
+// stats migration after it has consumed the legacy value (see
+// removeLegacyConfigKeyOnce) — config writes never remove it.
 export const STORAGE_KEY = 'bilibiliSpeedMaster';
+export const GLOBAL_STORAGE_KEY = 'bilibiliSpeedMasterGlobal';
+export const CHANNELS_STORAGE_KEY = 'bilibiliSpeedMasterChannels';
 
 export const DEFAULT_CONFIG: SpeedMasterConfig = {
   version: 1,
@@ -39,6 +49,9 @@ export const DEFAULT_CONFIG: SpeedMasterConfig = {
 type StorageLike = {
   get: (keys: string | string[] | null, callback?: (items: any) => void) => any;
   set: (items: Record<string, any>, callback?: () => void) => any;
+  // Optional because minimal test mocks may omit it; the only caller
+  // (removeLegacyConfigKeyOnce) guards for its absence.
+  remove?: (keys: string | string[], callback?: () => void) => any;
 };
 
 const storage = (() => {
@@ -149,56 +162,66 @@ export const capChannels = (
   return { ...config, channels: next };
 };
 
+// Partition-level merge helpers (D-2): mergeConfig assembles a full config
+// from a raw merged blob (import files, legacy storage), and getConfig reuses
+// the same per-section merging for the split keys' values.
+const mergeGlobalRaw = (raw: any): SpeedMasterConfig['global'] => {
+  const global = raw && typeof raw === 'object' ? raw : {};
+  return {
+    defaultSpeed:
+      typeof global.defaultSpeed === 'number'
+        ? global.defaultSpeed
+        : DEFAULT_CONFIG.global.defaultSpeed,
+    preferredQuality:
+      typeof global.preferredQuality === 'string'
+        ? global.preferredQuality
+        : DEFAULT_CONFIG.global.preferredQuality,
+    showVideoWidget:
+      typeof global.showVideoWidget === 'boolean'
+        ? global.showVideoWidget
+        : DEFAULT_CONFIG.global.showVideoWidget,
+    videoWidgetPosition:
+      global.videoWidgetPosition === 'topLeft' || global.videoWidgetPosition === 'topRight'
+        ? global.videoWidgetPosition
+        : DEFAULT_CONFIG.global.videoWidgetPosition,
+  };
+};
+
+const mergeStatsRaw = (raw: any): SpeedMasterConfig['stats'] => {
+  const stats = raw && typeof raw === 'object' ? raw : {};
+  return {
+    timeSavedSeconds:
+      typeof stats.timeSavedSeconds === 'number'
+        ? stats.timeSavedSeconds
+        : DEFAULT_CONFIG.stats.timeSavedSeconds,
+  };
+};
+
 export const mergeConfig = (raw: any): SpeedMasterConfig => {
   if (!raw || typeof raw !== 'object') {
     return { ...DEFAULT_CONFIG };
   }
 
-  const global = raw.global && typeof raw.global === 'object' ? raw.global : {};
-  const stats = raw.stats && typeof raw.stats === 'object' ? raw.stats : {};
-
   return {
     version: 1,
-    global: {
-      defaultSpeed:
-        typeof global.defaultSpeed === 'number'
-          ? global.defaultSpeed
-          : DEFAULT_CONFIG.global.defaultSpeed,
-      preferredQuality:
-        typeof global.preferredQuality === 'string'
-          ? global.preferredQuality
-          : DEFAULT_CONFIG.global.preferredQuality,
-      showVideoWidget:
-        typeof global.showVideoWidget === 'boolean'
-          ? global.showVideoWidget
-          : DEFAULT_CONFIG.global.showVideoWidget,
-      videoWidgetPosition:
-        global.videoWidgetPosition === 'topLeft' || global.videoWidgetPosition === 'topRight'
-          ? global.videoWidgetPosition
-          : DEFAULT_CONFIG.global.videoWidgetPosition,
-    },
+    global: mergeGlobalRaw(raw.global),
     channels: sanitizeChannels(raw.channels),
-    stats: {
-      timeSavedSeconds:
-        typeof stats.timeSavedSeconds === 'number'
-          ? stats.timeSavedSeconds
-          : DEFAULT_CONFIG.stats.timeSavedSeconds,
-    },
+    stats: mergeStatsRaw(raw.stats),
   };
 };
 
-const getFromStorage = (): Promise<Record<string, any>> => {
+const getFromStorage = (keys: string[]): Promise<Record<string, any>> => {
   if (!storage) {
     return Promise.resolve({});
   }
 
   if (storage.get.length >= 2) {
     return new Promise((resolve) => {
-      storage.get(STORAGE_KEY, (items: Record<string, any>) => resolve(items || {}));
+      storage.get(keys, (items: Record<string, any>) => resolve(items || {}));
     });
   }
 
-  return Promise.resolve(storage.get(STORAGE_KEY));
+  return Promise.resolve(storage.get(keys));
 };
 
 // storage.sync writes can fail silently (quota exceeded, browser restart,
@@ -235,24 +258,142 @@ const setInStorage = (items: Record<string, any>): Promise<void> => {
   });
 };
 
+const removeFromStorage = (keys: string[]): Promise<void> => {
+  if (!storage || typeof storage.remove !== 'function') {
+    return Promise.resolve();
+  }
+  const remove = storage.remove;
+
+  if (remove.length >= 2) {
+    return new Promise((resolve) => {
+      remove(keys, () => {
+        const root = globalThis as typeof globalThis & {
+          chrome?: { runtime?: { lastError?: { message?: string } } };
+        };
+        const lastError = root.chrome?.runtime?.lastError;
+        if (lastError?.message) {
+          warnStorageWriteFailure(lastError.message);
+        }
+        resolve();
+      });
+    });
+  }
+
+  return Promise.resolve(storage.remove(keys)).catch((error) => {
+    warnStorageWriteFailure(error);
+  });
+};
+
+// D-2 (PM review fix): retires the legacy merged key — but never from a
+// config write. The legacy blob still carries the pre-D-1 stats value (the
+// stats migration's source), so the ordering guarantee is:
+// config writes never remove it → removal is triggered only by the stats
+// migration after it completed successfully (see stats.ts) → the migration's
+// read of the legacy key always precedes its removal.
+// The removal additionally waits until BOTH split keys are in place: until
+// the first config write, the legacy blob is still the read fallback for
+// global/channels, and deleting it earlier would drop the user's settings.
+// The once-flag is consumed only when the removal actually runs (removal
+// itself is best-effort: a failed removal is warned about and never retried,
+// it just leaves dead data behind since reads prefer the split keys). Each
+// context (tab / content script / popup) has its own module instance and its
+// own flag, but removal is idempotent, so multi-tab needs no coordination.
+let legacyKeyRemovalAttempted = false;
+
+export const removeLegacyConfigKeyOnce = async (): Promise<void> => {
+  if (legacyKeyRemovalAttempted) {
+    return;
+  }
+  const items = await getFromStorage([GLOBAL_STORAGE_KEY, CHANNELS_STORAGE_KEY]);
+  const splitsInPlace =
+    items?.[GLOBAL_STORAGE_KEY] != null && items?.[CHANNELS_STORAGE_KEY] != null;
+  if (!splitsInPlace) {
+    // The legacy blob is still needed as the read fallback; leave the flag
+    // unconsumed so a later attempt (after the first config write) can run.
+    return;
+  }
+  legacyKeyRemovalAttempted = true;
+  await removeFromStorage([STORAGE_KEY]);
+};
+
 export const getConfig = async (): Promise<SpeedMasterConfig> => {
-  const items = await getFromStorage();
-  return mergeConfig(items?.[STORAGE_KEY]);
+  const items = await getFromStorage([GLOBAL_STORAGE_KEY, CHANNELS_STORAGE_KEY, STORAGE_KEY]);
+  const globalItem = items?.[GLOBAL_STORAGE_KEY];
+  const channelsItem = items?.[CHANNELS_STORAGE_KEY];
+  const legacyItem = items?.[STORAGE_KEY];
+  // Per-partition read: a partition prefers its split key and falls back to
+  // the legacy merged blob when the split key is absent. An upgrade therefore
+  // reads the old key seamlessly, and even a half-persisted state (one split
+  // write failed) still serves every partition. stats only ever lived in the
+  // legacy blob: the live counter moved to storage.local (D-1) and the field
+  // is kept for old-format import compatibility.
+  return {
+    version: 1,
+    global: mergeGlobalRaw(globalItem != null ? globalItem.global : legacyItem?.global),
+    channels: sanitizeChannels(
+      channelsItem != null ? channelsItem.channels : legacyItem?.channels,
+    ),
+    stats: mergeStatsRaw(legacyItem?.stats),
+  };
+};
+
+// Actual persistence, called only from queued units (setConfig/updateConfig):
+// one storage.sync.set carries both partitions — a single write operation for
+// the quota, and the two partitions cannot be observed half-written.
+const persistConfig = async (config: SpeedMasterConfig): Promise<SpeedMasterConfig> => {
+  const next = capChannels(config);
+  await setInStorage({
+    [GLOBAL_STORAGE_KEY]: { version: 1, global: next.global },
+    [CHANNELS_STORAGE_KEY]: { version: 1, channels: next.channels },
+  });
+  // Deliberately NO legacy-key removal here (PM review fix): the legacy blob
+  // doubles as the stats migration's source (D-1) and, until the splits above
+  // are observed by a reader, as the global/channels read fallback. stats.ts
+  // retires it via removeLegacyConfigKeyOnce, strictly after the migration.
+  return next;
+};
+
+// D-2: within one context (content script, popup, options) several code paths
+// can issue read-modify-write cycles concurrently (a debounced rate-change
+// flush racing a channel visit, or two popup steppers in flight). Writes are
+// serialized through this promise chain: each queued unit runs to completion
+// before the next starts, so a later writer always builds on the earlier
+// writer's persisted result instead of on a pre-write snapshot. A failed unit
+// must not block the queue, so the chain itself never rejects. Cross-context
+// races are narrowed by the split keys, not by this queue.
+let writeChain: Promise<unknown> = Promise.resolve();
+
+const enqueueWrite = <T>(task: () => Promise<T>): Promise<T> => {
+  const run = writeChain.then(task, task);
+  writeChain = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
 };
 
 // Single write entry point: every persistence path (content-script rate
 // changes and channel visits, popup/options updates, imports) lands here, so
-// the LRU cap is enforced exactly once. Returns the config as persisted so
-// callers can mirror storage state instead of their pre-cap input.
-export const setConfig = async (config: SpeedMasterConfig): Promise<SpeedMasterConfig> => {
-  const next = capChannels(config);
-  await setInStorage({ [STORAGE_KEY]: next });
-  return next;
-};
+// the LRU cap is enforced exactly once. Queued behind other writers in this
+// context (see writeChain). Returns the config as persisted so callers can
+// mirror storage state instead of their pre-cap input.
+export const setConfig = (config: SpeedMasterConfig): Promise<SpeedMasterConfig> =>
+  enqueueWrite(() => persistConfig(config));
 
-export const updateConfig = async (
+// Read-modify-write as ONE queued unit: the read happens inside the queue, so
+// a concurrent update in this context cannot interleave between this read and
+// its write. Reference-equality short-circuit: when the updater returns the
+// config it received, storage already holds exactly that state and the write
+// is skipped — this carries the content script's "updateConfigIfChanged"
+// semantics, keeping no-op rate changes from touching storage at all.
+export const updateConfig = (
   updater: (current: SpeedMasterConfig) => SpeedMasterConfig,
-): Promise<SpeedMasterConfig> => {
-  const current = await getConfig();
-  return setConfig(updater(current));
-};
+): Promise<SpeedMasterConfig> =>
+  enqueueWrite(async () => {
+    const current = await getConfig();
+    const next = updater(current);
+    if (next === current) {
+      return current;
+    }
+    return persistConfig(next);
+  });

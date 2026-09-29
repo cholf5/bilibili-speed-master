@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_CONFIG,
   MAX_CHANNELS,
@@ -280,5 +280,426 @@ describe('mergeConfig', () => {
 
   it('round-trips DEFAULT_CONFIG unchanged', () => {
     expect(mergeConfig(DEFAULT_CONFIG)).toEqual(DEFAULT_CONFIG);
+  });
+});
+
+// D-2 storage tests: split keys, read fallback, and the in-context write
+// queue. config.ts resolves its storage handle once at module evaluation, so
+// (mirroring stats.test.ts) each test resets the module registry, injects the
+// in-memory storage, and only then dynamically imports the module under test.
+// The pure-function tests above keep their static import; both module
+// instances coexist without interference.
+describe('storage split keys and write queue (D-2)', () => {
+  type GatedSync = {
+    area: Record<string, any>;
+    data: Record<string, any>;
+    setCalls: Array<Record<string, any>>;
+    removeCalls: string[][];
+    getWaiters: Array<() => void>;
+    // When false (default) every get responds immediately; queue tests flip
+    // this on so read-modify-write interleavings can be staged by hand via
+    // releaseNextGet.
+    holdGets: boolean;
+    releaseNextGet: () => void;
+  };
+
+  // Callback-style sync mock (get/set/remove length >= 2, matching the
+  // chrome callback API branch). Reads snapshot `data` at delivery time.
+  const createGatedSync = (): GatedSync => {
+    const data: Record<string, any> = {};
+    const setCalls: Array<Record<string, any>> = [];
+    const removeCalls: string[][] = [];
+    const getWaiters: Array<() => void> = [];
+    const state: GatedSync = {
+      area: {} as Record<string, any>,
+      data,
+      setCalls,
+      removeCalls,
+      getWaiters,
+      holdGets: false,
+      releaseNextGet: () => {
+        const waiter = getWaiters.shift();
+        if (!waiter) {
+          throw new Error('no pending storage.get to release');
+        }
+        waiter();
+      },
+    };
+
+    const keysOf = (keys: unknown): string[] =>
+      (Array.isArray(keys) ? keys : [keys]).filter(
+        (key): key is string => typeof key === 'string',
+      );
+
+    state.area = {
+      get(keys: unknown, callback?: (items: any) => void) {
+        const keysList = keysOf(keys);
+        const deliver = () => {
+          const items: Record<string, any> = {};
+          for (const key of keysList) {
+            if (key in data) {
+              items[key] = data[key];
+            }
+          }
+          callback?.(items);
+        };
+        if (state.holdGets) {
+          getWaiters.push(deliver);
+        } else {
+          deliver();
+        }
+      },
+      set(items: Record<string, any>, callback?: () => void) {
+        setCalls.push(items);
+        Object.assign(data, items);
+        callback?.();
+      },
+      remove(keys: unknown, callback?: () => void) {
+        const keysList = keysOf(keys);
+        removeCalls.push(keysList);
+        for (const key of keysList) {
+          delete data[key];
+        }
+        callback?.();
+      },
+    };
+
+    return state;
+  };
+
+  // A macrotask tick flushes every pending microtask, so queued units have
+  // started (or finished) deterministically by the time it resolves.
+  const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+  let gated: GatedSync;
+  let config: typeof import('@/src/shared/config');
+
+  const seedLegacyConfig = () => {
+    gated.data[config.STORAGE_KEY] = {
+      version: 1,
+      global: { ...config.DEFAULT_CONFIG.global, defaultSpeed: 1.5 },
+      channels: {
+        legacy: {
+          channelId: 'legacy',
+          channelName: 'Legacy',
+          speed: 1.25,
+          lastVisit: '2026-01-01T00:00:00.000Z',
+        },
+      },
+      stats: { timeSavedSeconds: 99 },
+    };
+  };
+
+  beforeEach(async () => {
+    vi.resetModules();
+    gated = createGatedSync();
+    (globalThis as any).browser = { storage: { sync: gated.area } };
+    config = await import('@/src/shared/config');
+  });
+
+  afterEach(() => {
+    delete (globalThis as any).browser;
+    delete (globalThis as any).chrome;
+    vi.restoreAllMocks();
+  });
+
+  describe('read fallback', () => {
+    it('reads the legacy merged key when the split keys are absent (upgrade path)', async () => {
+      seedLegacyConfig();
+
+      await expect(config.getConfig()).resolves.toEqual({
+        version: 1,
+        global: { ...config.DEFAULT_CONFIG.global, defaultSpeed: 1.5 },
+        channels: {
+          legacy: {
+            channelId: 'legacy',
+            channelName: 'Legacy',
+            speed: 1.25,
+            lastVisit: '2026-01-01T00:00:00.000Z',
+          },
+        },
+        stats: { timeSavedSeconds: 99 },
+      });
+    });
+
+    it('prefers the split keys over the legacy blob when both exist', async () => {
+      seedLegacyConfig();
+      gated.data[config.GLOBAL_STORAGE_KEY] = {
+        version: 1,
+        global: { ...config.DEFAULT_CONFIG.global, defaultSpeed: 2 },
+      };
+      gated.data[config.CHANNELS_STORAGE_KEY] = {
+        version: 1,
+        channels: {
+          split: { channelId: 'split', channelName: 'Split', speed: 3 },
+        },
+      };
+
+      const loaded = await config.getConfig();
+      expect(loaded.global.defaultSpeed).toBe(2);
+      expect(loaded.channels.split).toBeDefined();
+      expect(loaded.channels.legacy).toBeUndefined();
+      // stats only ever lived in the legacy blob (D-1), so they still surface
+      // from it even when both split keys win for their own partitions.
+      expect(loaded.stats).toEqual({ timeSavedSeconds: 99 });
+    });
+
+    it('falls back per partition when only one split key exists', async () => {
+      seedLegacyConfig();
+      gated.data[config.GLOBAL_STORAGE_KEY] = {
+        version: 1,
+        global: { ...config.DEFAULT_CONFIG.global, defaultSpeed: 2 },
+      };
+
+      const loaded = await config.getConfig();
+      expect(loaded.global.defaultSpeed).toBe(2);
+      // No channels split key → the legacy channels record is still served.
+      expect(loaded.channels.legacy).toBeDefined();
+    });
+  });
+
+  describe('split writes', () => {
+    it('writes only the split keys and keeps the legacy key in place (stats migration owns removal)', async () => {
+      seedLegacyConfig();
+
+      const next = await config.setConfig({
+        ...config.DEFAULT_CONFIG,
+        global: { ...config.DEFAULT_CONFIG.global, defaultSpeed: 2.5 },
+        channels: {
+          a: { channelId: 'a', channelName: 'A', speed: 1.5, lastVisit: '2026-02-01T00:00:00.000Z' },
+        },
+      });
+
+      expect(gated.data[config.GLOBAL_STORAGE_KEY]).toEqual({
+        version: 1,
+        global: { ...config.DEFAULT_CONFIG.global, defaultSpeed: 2.5 },
+      });
+      expect(gated.data[config.CHANNELS_STORAGE_KEY]).toEqual({
+        version: 1,
+        channels: {
+          a: { channelId: 'a', channelName: 'A', speed: 1.5, lastVisit: '2026-02-01T00:00:00.000Z' },
+        },
+      });
+      expect(next.global.defaultSpeed).toBe(2.5);
+
+      // (PM review fix) The legacy merged key still carries the pre-D-1 stats
+      // value and serves as the global/channels read fallback until the splits
+      // are read back, so config writes must never remove it — the stats
+      // migration retires it after consuming it.
+      expect(config.STORAGE_KEY in gated.data).toBe(true);
+      for (const items of gated.setCalls) {
+        expect(config.STORAGE_KEY in items).toBe(false);
+      }
+      expect(gated.removeCalls).toEqual([]);
+
+      // A later write does not remove it either.
+      await config.setConfig(config.DEFAULT_CONFIG);
+      expect(gated.removeCalls).toEqual([]);
+    });
+
+    it('removeLegacyConfigKeyOnce retires the legacy key exactly once once both splits are in place', async () => {
+      seedLegacyConfig();
+      await config.setConfig({ ...config.DEFAULT_CONFIG }); // splits in place
+
+      await config.removeLegacyConfigKeyOnce();
+
+      expect(config.STORAGE_KEY in gated.data).toBe(false);
+      expect(gated.removeCalls).toEqual([[config.STORAGE_KEY]]);
+
+      // The once-flag prevents any further removal attempts.
+      await config.removeLegacyConfigKeyOnce();
+      expect(gated.removeCalls).toHaveLength(1);
+    });
+
+    it('removeLegacyConfigKeyOnce is a no-op while a split key is missing, and still works later', async () => {
+      seedLegacyConfig(); // no split keys yet
+
+      await config.removeLegacyConfigKeyOnce();
+
+      // The legacy blob is still the read fallback for global/channels, so it
+      // stays — and the once-flag is NOT consumed by the skipped attempt.
+      expect(config.STORAGE_KEY in gated.data).toBe(true);
+      expect(gated.removeCalls).toEqual([]);
+
+      await config.setConfig({ ...config.DEFAULT_CONFIG }); // splits in place now
+      await config.removeLegacyConfigKeyOnce();
+
+      expect(config.STORAGE_KEY in gated.data).toBe(false);
+      expect(gated.removeCalls).toEqual([[config.STORAGE_KEY]]);
+    });
+
+    it('keeps the setConfig round-trip contract: capping and full-config return', async () => {
+      const channels: Record<string, ChannelOverride> = {};
+      for (let i = 0; i < config.MAX_CHANNELS + 10; i += 1) {
+        channels[String(i)] = {
+          channelId: String(i),
+          channelName: `Channel ${i}`,
+          speed: 1.5,
+          lastVisit: new Date(Date.UTC(2026, 0, 1, 0, 0, i)).toISOString(),
+        };
+      }
+
+      const persisted = await config.setConfig({ ...config.DEFAULT_CONFIG, channels });
+
+      expect(Object.keys(persisted.channels)).toHaveLength(config.MAX_CHANNELS);
+      expect(persisted.channels['0']).toBeUndefined(); // oldest evicted
+      expect(persisted.channels['209']).toBeDefined();
+      expect(gated.data[config.CHANNELS_STORAGE_KEY].channels).toEqual(persisted.channels);
+      await expect(config.getConfig()).resolves.toEqual(persisted);
+    });
+  });
+
+  describe('write queue', () => {
+    const seedSplitDefaults = () => {
+      gated.data[config.GLOBAL_STORAGE_KEY] = {
+        version: 1,
+        global: { ...config.DEFAULT_CONFIG.global },
+      };
+      gated.data[config.CHANNELS_STORAGE_KEY] = { version: 1, channels: {} };
+    };
+
+    it('serializes concurrent updateConfig calls so the later writer builds on the earlier result', async () => {
+      seedSplitDefaults();
+      gated.holdGets = true;
+
+      const first = config.updateConfig((current) => ({
+        ...current,
+        global: { ...current.global, defaultSpeed: 2 },
+      }));
+      await tick();
+      expect(gated.getWaiters).toHaveLength(1);
+
+      let seenBySecond: number | null = null;
+      const second = config.updateConfig((current) => {
+        seenBySecond = current.global.defaultSpeed;
+        return {
+          ...current,
+          global: { ...current.global, defaultSpeed: current.global.defaultSpeed + 1 },
+        };
+      });
+      await tick();
+      // The second unit is queued: it must not read before the first write.
+      expect(gated.getWaiters).toHaveLength(1);
+
+      gated.releaseNextGet();
+      await first;
+      expect(gated.data[config.GLOBAL_STORAGE_KEY].global.defaultSpeed).toBe(2);
+
+      await tick();
+      expect(gated.getWaiters).toHaveLength(1);
+      gated.releaseNextGet();
+      await second;
+
+      // The second writer read the first writer's persisted value (2), not
+      // the original 1 — the read-modify-write cycles did not interleave.
+      expect(seenBySecond).toBe(2);
+      expect(gated.data[config.GLOBAL_STORAGE_KEY].global.defaultSpeed).toBe(3);
+    });
+
+    it('keeps a concurrent popup-style global write and content-style channels write from clobbering each other', async () => {
+      seedSplitDefaults();
+      gated.holdGets = true;
+
+      // Both writes are in flight before either settles, mirroring a popup
+      // global change racing a content-script channel override.
+      const popupWrite = config.updateConfig((current) => ({
+        ...current,
+        global: { ...current.global, defaultSpeed: 2.5 },
+      }));
+      const contentWrite = config.updateConfig((current) => ({
+        ...current,
+        channels: {
+          ...current.channels,
+          '42': {
+            channelId: '42',
+            channelName: 'Channel 42',
+            speed: 2,
+            lastVisit: '2026-03-01T00:00:00.000Z',
+          },
+        },
+      }));
+      await tick();
+
+      gated.releaseNextGet();
+      await popupWrite;
+      await tick();
+      gated.releaseNextGet();
+      await contentWrite;
+
+      // Both partitions landed; no set call ever carried the legacy merged
+      // key (the split-key evidence: a stale global write can no longer
+      // transport a channels snapshot under the old merged key).
+      expect(gated.data[config.GLOBAL_STORAGE_KEY].global.defaultSpeed).toBe(2.5);
+      expect(gated.data[config.CHANNELS_STORAGE_KEY].channels['42'].speed).toBe(2);
+      for (const items of gated.setCalls) {
+        expect(Object.keys(items).sort()).toEqual(
+          [config.CHANNELS_STORAGE_KEY, config.GLOBAL_STORAGE_KEY].sort(),
+        );
+      }
+    });
+
+    it('does not lose same-key updates across queued consecutive read-modify-writes', async () => {
+      gated.holdGets = true;
+      gated.data[config.GLOBAL_STORAGE_KEY] = {
+        version: 1,
+        global: { ...config.DEFAULT_CONFIG.global },
+      };
+      gated.data[config.CHANNELS_STORAGE_KEY] = {
+        version: 1,
+        channels: {
+          '42': {
+            channelId: '42',
+            channelName: 'Channel 42',
+            speed: 1,
+            lastVisit: '2026-03-01T00:00:00.000Z',
+          },
+        },
+      };
+
+      // Two relative channel-speed bumps issued concurrently: each must apply
+      // on top of the previous writer's result (1 → 1.5 → 2), not both on 1.
+      const bump = () =>
+        config.updateConfig((current) => ({
+          ...current,
+          channels: {
+            ...current.channels,
+            '42': { ...current.channels['42'], speed: current.channels['42'].speed + 0.5 },
+          },
+        }));
+      const bumpA = bump();
+      const bumpB = bump();
+
+      await tick();
+      gated.releaseNextGet();
+      await bumpA;
+      await tick();
+      gated.releaseNextGet();
+      await bumpB;
+
+      expect(gated.data[config.CHANNELS_STORAGE_KEY].channels['42'].speed).toBe(2);
+    });
+
+    it('skips the storage write when the updater returns the config unchanged', async () => {
+      seedSplitDefaults();
+      gated.holdGets = true;
+
+      const unchanged = config.updateConfig((current) => current);
+      await tick();
+      gated.releaseNextGet();
+      await expect(unchanged).resolves.toEqual({ ...config.DEFAULT_CONFIG });
+
+      expect(gated.setCalls).toHaveLength(0);
+      expect(gated.removeCalls).toHaveLength(0);
+
+      // The queue still works afterwards.
+      const changed = config.updateConfig((current) => ({
+        ...current,
+        global: { ...current.global, defaultSpeed: 2 },
+      }));
+      await tick();
+      gated.releaseNextGet();
+      await changed;
+      expect(gated.data[config.GLOBAL_STORAGE_KEY].global.defaultSpeed).toBe(2);
+    });
   });
 });

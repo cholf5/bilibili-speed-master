@@ -1,6 +1,12 @@
 import './App.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { STORAGE_KEY, getConfig, updateConfig, type SpeedMasterConfig } from '@/src/shared/config';
+import {
+  CHANNELS_STORAGE_KEY,
+  GLOBAL_STORAGE_KEY,
+  getConfig,
+  updateConfig,
+  type SpeedMasterConfig,
+} from '@/src/shared/config';
 import { STATS_STORAGE_KEY, getSavedStats } from '@/src/shared/stats';
 import { t } from '@/src/shared/i18n';
 
@@ -84,7 +90,13 @@ function App() {
       return;
     }
     const listener = (changes: Record<string, any>, areaName: string) => {
-      if (areaName === 'sync' && changes?.[STORAGE_KEY]) {
+      // D-2: the sync config lives under the two split keys; the legacy merged
+      // key is not watched (nothing writes it anymore after the first split
+      // write).
+      if (
+        areaName === 'sync' &&
+        (changes?.[GLOBAL_STORAGE_KEY] || changes?.[CHANNELS_STORAGE_KEY])
+      ) {
         void getConfig().then(setConfig);
       }
     };
