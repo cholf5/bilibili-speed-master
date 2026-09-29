@@ -16,8 +16,6 @@
 ## To Do
 - D-1 统计数据迁移 storage.local 并降低 sync 写入频率（P0）
 - D-2 消除跨上下文配置写入竞态（P0）
-- D-3 导入配置按 schema 校验（含 channels 条目）（P0）
-- D-4 channels LRU 上限与清理（P1）
 - D-5 options lastVisit 显示本地时间（P1）
 - 
 
@@ -28,6 +26,8 @@
 - 
 
 ## Testing / QA
+- D-3 导入配置按 schema 校验（dev + PM 评审 + 程序化 QA 完成；待用户真机验收）（P0）
+- D-4 channels LRU 上限与清理（dev + PM 评审 + 程序化 QA 完成；待用户真机验收）（P1）
 - B-1 Fix core playback bugs found in retro review (dev + UI QA done; live-player checklist in card pending)
 - 
 

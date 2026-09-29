@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './App.css';
-import { getConfig, updateConfig, type ChannelOverride, type SpeedMasterConfig } from '@/src/shared/config';
+import {
+  getConfig,
+  mergeConfig,
+  updateConfig,
+  type ChannelOverride,
+  type SpeedMasterConfig,
+} from '@/src/shared/config';
 import { t } from '@/src/shared/i18n';
 
 const SPEED_STEP = 0.1;
@@ -139,7 +145,9 @@ function App() {
       throw new Error('invalid');
     }
 
-    const next = await updateConfig(() => raw as SpeedMasterConfig);
+    // Sanitize before persisting (D-3): mergeConfig validates global/stats and
+    // every channel entry, and setConfig caps channels to the LRU limit (D-4).
+    const next = await updateConfig(() => mergeConfig(raw));
     setConfig(next);
   };
 
