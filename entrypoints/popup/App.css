@@ -139,6 +139,31 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
+}
+
+/* D-10: meta line with the inline "follow global" action. */
+.channel-card__meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.channel-card__follow-global {
+  flex-shrink: 0;
+  border: 1px solid rgba(62, 166, 255, 0.45);
+  border-radius: 999px;
+  background: transparent;
+  color: #78b8ff;
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.channel-card__follow-global:hover {
+  background: rgba(62, 166, 255, 0.15);
 }
 
 .row {

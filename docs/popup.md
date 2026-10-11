@@ -63,6 +63,11 @@ Below is a structured UI reverse-engineering description based on the provided s
     meta line stating where the channel's effective speed comes from:
     `Override · 1.5x` when the channel has a stored override, or `Following global · 1.0x`
     when it inherits the global default. The meta line refreshes live via storage changes
+  * Follow-global action (D-10): while a stored override exists, a small pill
+    button labeled `Follow global` sits at the end of the meta line; clicking
+    it deletes the channel override (single-writer config path) and the
+    channel immediately returns to the global speed. Not rendered when the
+    channel has no override
   * Right: stepper control (`-` / current video speed / `+`) that adjusts the speed of
     the video currently playing in that tab; the change is persisted as the channel
     override through the same user-intent path as the in-video widget

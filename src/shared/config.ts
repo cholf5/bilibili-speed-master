@@ -180,6 +180,30 @@ export const capChannels = (
   return { ...config, channels: next };
 };
 
+// D-10: the one shared channel-override removal behind options' table delete
+// and the popup's "follow global" action, so the two entrypoints cannot drift.
+// Pure: builds a NEW channels record without the entry (the input record and
+// its entries are never mutated). An entry counts as removed when its record
+// key or its channelId matches (sanitizeChannels keys records by channelId,
+// but a disagreeing legacy blob must not survive a targeted removal). When
+// nothing matches, the input reference is returned so callers can skip no-op
+// writes through updateConfig's reference-equality short-circuit.
+export const removeChannelOverride = (
+  channels: Record<string, ChannelOverride>,
+  channelId: string,
+): Record<string, ChannelOverride> => {
+  let removed = false;
+  const next: Record<string, ChannelOverride> = {};
+  for (const [key, channel] of Object.entries(channels)) {
+    if (key === channelId || channel.channelId === channelId) {
+      removed = true;
+      continue;
+    }
+    next[key] = channel;
+  }
+  return removed ? next : channels;
+};
+
 // Partition-level merge helpers (D-2): mergeConfig assembles a full config
 // from a raw merged blob (import files, legacy storage), and getConfig reuses
 // the same per-section merging for the split keys' values. mergeGlobalRaw is

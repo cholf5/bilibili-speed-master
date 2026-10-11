@@ -157,6 +157,18 @@ Below is a precise, structured reverse-engineering of the second UI.
 
 ---
 
+#### Search Box (D-11)
+
+* Text input between the container top and the table header row
+* Placeholder: `Search channels`
+* Client-side filter: rows match when the (trimmed, case-insensitive) keyword
+  is a substring of the channel name or channelId; empty keyword = all rows;
+  input debounced ~150ms
+* While filtering, a `n / total` counter shows on the right; a search with no
+  matches renders a `No channels match your search.` empty state instead of
+  rows. Filtering is display-only: delete/speed controls keep operating on the
+  row's channelId
+
 #### Table Header Row
 
 * **Columns**

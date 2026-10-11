@@ -4,6 +4,7 @@ import {
   CHANNELS_STORAGE_KEY,
   GLOBAL_STORAGE_KEY,
   getConfig,
+  removeChannelOverride,
   updateConfig,
   type SpeedMasterConfig,
 } from '@/src/shared/config';
@@ -187,6 +188,28 @@ function App() {
     void updateGlobal({ preferredQuality: event.target.value });
   };
 
+  // D-10: one click drops the channel's override and returns it to the global
+  // speed. The removal goes through the shared removeChannelOverride helper
+  // (same implementation as options' table delete, D-10 notes) inside the
+  // single updateConfig writer; the content script's storage.onChanged chain
+  // re-applies the global speed and pushes the new rate back over the popup
+  // port. The reference-equality short-circuit keeps a no-op clear (override
+  // already gone) from writing storage.
+  const clearChannelOverride = async () => {
+    if (!channel) {
+      return;
+    }
+    const channelId = channel.channelId;
+    const next = await updateConfig((current) => {
+      const channels = removeChannelOverride(current.channels, channelId);
+      if (channels === current.channels) {
+        return current;
+      }
+      return { ...current, channels };
+    });
+    setConfig(next);
+  };
+
   const openOptions = () => {
     const runtime =
       (globalThis as typeof globalThis & { browser?: any; chrome?: any }).browser
@@ -289,6 +312,12 @@ function App() {
       : `${t('followingGlobal')} · ${formatSpeed(defaultSpeed)}`
     : '';
 
+  // D-10: an entry in `channels` IS an override — even when its speed happens
+  // to equal the global default (B-4's phantom-override background), the entry
+  // still diverts this channel from following the global stepper. Only then is
+  // the one-click "follow global" escape hatch rendered.
+  const hasChannelOverride = Boolean(channel && config?.channels[channel.channelId]);
+
   return (
     <div className="popup">
       <header className="popup__header">
@@ -326,7 +355,20 @@ function App() {
               <span className="channel-card__name" title={channel.channelName}>
                 {channel.channelName}
               </span>
-              <span className="channel-card__meta">{channelSpeedMeta}</span>
+              {/* D-10: meta line plus the one-click "follow global" action;
+                  the button only exists while an override entry does. */}
+              <span className="channel-card__meta-row">
+                <span className="channel-card__meta">{channelSpeedMeta}</span>
+                {hasChannelOverride && (
+                  <button
+                    type="button"
+                    className="channel-card__follow-global"
+                    onClick={() => void clearChannelOverride()}
+                  >
+                    {t('followGlobal')}
+                  </button>
+                )}
+              </span>
             </div>
             <div className="stepper">
               <button

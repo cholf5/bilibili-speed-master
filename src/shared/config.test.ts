@@ -4,6 +4,7 @@ import {
   MAX_CHANNELS,
   capChannels,
   mergeConfig,
+  removeChannelOverride,
   sanitizeChannels,
 } from '@/src/shared/config';
 import type { ChannelOverride, SpeedMasterConfig } from '@/src/shared/config';
@@ -197,6 +198,72 @@ describe('capChannels', () => {
     expect(capped.version).toBe(config.version);
     expect(capped.global).toEqual(config.global);
     expect(capped.stats).toEqual(config.stats);
+  });
+});
+
+// D-10: shared channel-override removal used by options' table delete and the
+// popup's "follow global" button.
+describe('removeChannelOverride (D-10)', () => {
+  it('removes the entry for the given channelId and keeps the others', () => {
+    const channels = {
+      a: makeChannel({ channelId: 'a', speed: 2 }),
+      b: makeChannel({ channelId: 'b', speed: 1.25 }),
+      c: makeChannel({ channelId: 'c', speed: 3 }),
+    };
+    const next = removeChannelOverride(channels, 'b');
+
+    expect(Object.keys(next)).toEqual(['a', 'c']);
+    expect(next.a).toBe(channels.a);
+    expect(next.c).toBe(channels.c);
+    expect(next.b).toBeUndefined();
+  });
+
+  it('does not mutate the input record or its entries', () => {
+    const channels = {
+      a: makeChannel({ channelId: 'a' }),
+      b: makeChannel({ channelId: 'b' }),
+    };
+    const next = removeChannelOverride(channels, 'a');
+
+    expect(next).not.toBe(channels);
+    expect(channels.a).toEqual(makeChannel({ channelId: 'a' }));
+    expect(Object.keys(channels)).toEqual(['a', 'b']);
+  });
+
+  it('returns the same record when the channelId is absent (no-op write skip)', () => {
+    const channels = { a: makeChannel({ channelId: 'a' }) };
+    expect(removeChannelOverride(channels, 'missing')).toBe(channels);
+    expect(removeChannelOverride(channels, '')).toBe(channels);
+  });
+
+  it('handles an empty channels record', () => {
+    const channels: Record<string, ChannelOverride> = {};
+    expect(removeChannelOverride(channels, 'a')).toBe(channels);
+    expect(removeChannelOverride(channels, 'a')).toEqual({});
+  });
+
+  it('also removes an entry whose channelId disagrees with its record key', () => {
+    // sanitizeChannels keys the record by entry.channelId, so key and channelId
+    // agree after any read; a disagreeing legacy blob must not survive a
+    // targeted removal either.
+    const channels = {
+      legacyKey: makeChannel({ channelId: 'actual' }),
+      other: makeChannel({ channelId: 'other' }),
+    };
+    const next = removeChannelOverride(channels, 'actual');
+
+    expect(Object.keys(next)).toEqual(['other']);
+    expect(removeChannelOverride(channels, 'legacyKey').other).toBe(channels.other);
+  });
+
+  it('removes every entry referencing the id, keyed or not', () => {
+    const channels = {
+      a: makeChannel({ channelId: 'dup' }),
+      dup: makeChannel({ channelId: 'dup', speed: 2 }),
+      keep: makeChannel({ channelId: 'keep' }),
+    };
+    const next = removeChannelOverride(channels, 'dup');
+    expect(Object.keys(next)).toEqual(['keep']);
   });
 });
 

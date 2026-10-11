@@ -3,6 +3,7 @@ import './App.css';
 import {
   getConfig,
   mergeConfig,
+  removeChannelOverride,
   updateConfig,
   type ChannelOverride,
   type SpeedMasterConfig,
@@ -24,6 +25,11 @@ import {
 const SPEED_STEP = 0.1;
 const SPEED_MIN = 0.1;
 const SPEED_MAX = 4;
+
+// D-11: the table search filters client-side; typing updates the input at
+// full speed while the (200-row-max, D-4) table re-renders once the typing
+// pauses for this long.
+const SEARCH_DEBOUNCE_MS = 150;
 
 const QUALITY_OPTIONS = [
   { value: 'auto', label: 'Auto' },
@@ -49,6 +55,27 @@ const normalizeAvatarUrl = (url?: string | null): string | undefined => {
     return `https:${url}`;
   }
   return url;
+};
+
+// D-11: client-side channel filter for the table above (pure, exported for
+// unit tests like formatTimestamp). Matches when the keyword (trimmed,
+// case-insensitive) is a substring of channelName or channelId; an empty
+// keyword keeps every row and returns the input array itself. Filtering only
+// shapes what renders — rows stay the original ChannelOverride objects, so
+// delete/speed controls keep operating by channelId, never by filtered index.
+export const filterChannelsByQuery = (
+  channels: ChannelOverride[],
+  query: string,
+): ChannelOverride[] => {
+  const keyword = query.trim().toLowerCase();
+  if (keyword === '') {
+    return channels;
+  }
+  return channels.filter(
+    (channel) =>
+      channel.channelName.toLowerCase().includes(keyword) ||
+      channel.channelId.toLowerCase().includes(keyword),
+  );
 };
 
 // D-5: formatTimestamp used to print UTC via toISOString(), an 8-hour lie
@@ -130,6 +157,19 @@ function App() {
     conflict: ShortcutActionId;
   } | null>(null);
   const recordingRowRef = useRef<HTMLDivElement | null>(null);
+  // D-11: search box state. `searchQuery` is the controlled input value; the
+  // filter reads `debouncedSearchQuery`, which trails it by SEARCH_DEBOUNCE_MS
+  // (timer cleared on every keystroke and on unmount).
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setDebouncedSearchQuery(searchQuery),
+      SEARCH_DEBOUNCE_MS,
+    );
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     getConfig().then(setConfig);
@@ -429,10 +469,16 @@ function App() {
     setConfig(next);
   };
 
+  // D-10: the removal itself is the shared removeChannelOverride helper —
+  // exactly what the popup's "follow global" button calls — funneled through
+  // the single updateConfig writer. The reference-equality short-circuit skips
+  // the storage write when there is nothing to remove.
   const deleteChannel = async (channelId: string) => {
     const next = await updateConfig((current) => {
-      const channels = { ...current.channels };
-      delete channels[channelId];
+      const channels = removeChannelOverride(current.channels, channelId);
+      if (channels === current.channels) {
+        return current;
+      }
       return {
         ...current,
         channels,
@@ -445,6 +491,14 @@ function App() {
     const entries = Object.values(config?.channels ?? {});
     return entries.sort((a, b) => (b.lastVisit || '').localeCompare(a.lastVisit || ''));
   }, [config]);
+
+  // D-11: display-only filtering; the rows are the same ChannelOverride
+  // objects as sortedChannels, so row actions keep working by channelId.
+  const visibleChannels = useMemo(
+    () => filterChannelsByQuery(sortedChannels, debouncedSearchQuery),
+    [sortedChannels, debouncedSearchQuery],
+  );
+  const isFiltering = debouncedSearchQuery.trim() !== '';
 
   const defaultSpeed = config?.global.defaultSpeed ?? 1;
   const preferredQuality = config?.global.preferredQuality ?? 'auto';
@@ -645,6 +699,23 @@ function App() {
       </section>
 
       <section className="table">
+        {/* D-11: client-side search above the table; filtering is
+            display-only (rows keep their channelId identity). */}
+        <div className="table__toolbar">
+          <input
+            type="search"
+            className="table__search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder={t('searchPlaceholder')}
+            aria-label={t('searchPlaceholder')}
+          />
+          {isFiltering && (
+            <span className="table__count" role="status">
+              {visibleChannels.length} / {sortedChannels.length}
+            </span>
+          )}
+        </div>
         <div className="table__header">
           <div>{t('channel')}</div>
           <div>{t('lastVisit')}</div>
@@ -653,8 +724,10 @@ function App() {
         <div className="table__body">
           {sortedChannels.length === 0 ? (
             <div className="table__empty">{t('noOverrides')}</div>
+          ) : visibleChannels.length === 0 ? (
+            <div className="table__empty" role="status">{t('noSearchResults')}</div>
           ) : (
-            sortedChannels.map((channel) => {
+            visibleChannels.map((channel) => {
               const avatarSrc =
                 avatarMap[channel.channelId] ?? normalizeAvatarUrl(channel.avatarUrl);
               return (
