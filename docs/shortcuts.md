@@ -59,9 +59,11 @@ instead of being consumed.)
 
 ## Notes
 
-- Shortcuts are ignored while typing in inputs, textareas, or editable
-  fields, while an IME composition is in progress, and while a focus is inside
-  the extension's speed widget.
+- Shortcuts are ignored while typing in inputs, textareas, selects, or
+  editable fields, while an IME composition is in progress, while a focus is
+  inside the extension's speed widget, and while a button, link, or
+  `role="button"` control has focus — Space/Enter then activate that control
+  natively instead of reaching the player.
 - `Ctrl`/`Alt`/`Cmd` combinations are only active if you record them as part
   of a binding; by default no binding uses them, and they fall through to the
   page untouched.

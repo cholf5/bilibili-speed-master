@@ -11,6 +11,12 @@ import {
   matchShortcut,
   type ShortcutActionId,
 } from '@/src/shared/shortcuts';
+import {
+  isActivatableTarget,
+  isEditableTarget,
+  type FocusTargetLike,
+} from '@/src/shared/focus-target';
+import { t } from '@/src/shared/i18n';
 
 const URL_POLL_INTERVAL_MS = 800;
 const KEYBOARD_SPEED_STEP = 0.25;
@@ -638,13 +644,13 @@ export default defineContentScript({
     const speedWidgetGear = document.createElement('button');
     speedWidgetGear.type = 'button';
     speedWidgetGear.className = 'smw__btn smw__gear';
-    speedWidgetGear.setAttribute('aria-label', 'Open settings');
+    speedWidgetGear.setAttribute('aria-label', t('widgetOpenSettings'));
     speedWidgetGear.innerHTML = GEAR_SVG;
     const speedWidgetMinus = document.createElement('button');
     speedWidgetMinus.type = 'button';
     speedWidgetMinus.className = 'smw__btn smw__minus';
     speedWidgetMinus.textContent = '−';
-    speedWidgetMinus.setAttribute('aria-label', 'Decrease speed');
+    speedWidgetMinus.setAttribute('aria-label', t('widgetDecreaseSpeed'));
     const speedWidgetLabel = document.createElement('span');
     speedWidgetLabel.className = 'smw__label';
     speedWidgetLabel.textContent = '-';
@@ -652,7 +658,7 @@ export default defineContentScript({
     speedWidgetPlus.type = 'button';
     speedWidgetPlus.className = 'smw__btn smw__plus';
     speedWidgetPlus.textContent = '+';
-    speedWidgetPlus.setAttribute('aria-label', 'Increase speed');
+    speedWidgetPlus.setAttribute('aria-label', t('widgetIncreaseSpeed'));
     speedWidgetRoot.append(speedWidgetGear, speedWidgetMinus, speedWidgetLabel, speedWidgetPlus);
 
     const showSpeedWidget = () => {
@@ -1068,17 +1074,34 @@ export default defineContentScript({
       });
     }
 
-    const isEditableTarget = (target: EventTarget | null) => {
+    // D-16: structural descriptor for the pure target classifiers in
+    // src/shared/focus-target.ts (the node test environment feeds them plain
+    // objects; here it is built from the live event target).
+    const getFocusTarget = (target: EventTarget | null): FocusTargetLike | null => {
       if (!(target instanceof HTMLElement)) {
+        return null;
+      }
+      return {
+        tagName: target.tagName,
+        isContentEditable: target.isContentEditable,
+        hasAttribute: (name) => target.hasAttribute(name),
+        getAttribute: (name) => target.getAttribute(name),
+      };
+    };
+
+    // D-16: focus sitting on a text-entry element OR an activatable control
+    // (button / a[href] / select / [role="button"]) means the key belongs to
+    // that element: shortcut matching is skipped entirely (no match, no
+    // consume) so native activation happens — Space on a focused 点赞 button
+    // activates it instead of toggling the player (TC1), while focus on
+    // body / <video> still reaches the shortcuts unchanged (TC2). B 站部分控件
+    // 是 div+click 且无 role，无法识别，按卡片 Notes 属已知局限。
+    const isExemptKeyTarget = (target: EventTarget | null): boolean => {
+      const focusTarget = getFocusTarget(target);
+      if (!focusTarget) {
         return false;
       }
-      const tag = target.tagName.toLowerCase();
-      return (
-        tag === 'input' ||
-        tag === 'textarea' ||
-        tag === 'select' ||
-        target.isContentEditable
-      );
+      return isEditableTarget(focusTarget) || isActivatableTarget(focusTarget);
     };
 
     const consume = (event: KeyboardEvent) => {
@@ -1229,10 +1252,15 @@ export default defineContentScript({
       }
       // Keys pressed while a widget control has focus belong to the widget
       // (e.g. Space would otherwise both activate the button and toggle play).
+      // D-16: widget buttons are native <button>s and are also covered by the
+      // activatable-element exemption below; this closest() guard stays as a
+      // first-line check for any other (current or future) focusable widget
+      // internals. Both paths return unconsumed, so the semantics are
+      // identical, not conflicting.
       if (event.target instanceof Element && event.target.closest(`.${WIDGET_CLASS}`)) {
         return;
       }
-      if (!activeVideo || !isManagedVideoPage() || isEditableTarget(event.target)) {
+      if (!activeVideo || !isManagedVideoPage() || isExemptKeyTarget(event.target)) {
         return;
       }
 
