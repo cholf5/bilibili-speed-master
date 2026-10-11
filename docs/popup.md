@@ -48,15 +48,6 @@ Below is a structured UI reverse-engineering description based on the provided s
   * Font size: ~70% of title
   * Link: https://x.com/cholf5
 
-* **Donate Button**
-
-  * Text: `Donate`
-  * Position: Top-right corner
-  * Shape: Rounded rectangle
-  * Background: Dark with bright multicolor (yellow/green/blue) border glow
-  * Text color: White
-  * Size: Smaller than main controls, similar height to subtitle line
-
 ---
 
 ### 2.2 Current Channel Card (contextual)
@@ -165,7 +156,6 @@ Below is a structured UI reverse-engineering description based on the provided s
   * Primary text: #ffffff
   * Secondary text / links: #3ea6ff (blue)
   * Accent (rating): #f5c518 (yellow)
-  * Accent (donate glow): multicolor gradient (yellow/green/blue)
 
 * **Typography**
 
@@ -177,7 +167,6 @@ Below is a structured UI reverse-engineering description based on the provided s
 * **Corner Radius**
 
   * Buttons and inputs: Medium radius (approx. 6–8px)
-  * Donate button: Slightly larger radius
 
 * **Icons**
 

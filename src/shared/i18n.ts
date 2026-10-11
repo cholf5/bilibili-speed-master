@@ -3,7 +3,6 @@ type Messages = Record<string, string>;
 const en: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Made by cholf5',
-  donate: 'Donate',
   currentSpeed: 'Current Speed',
   defaultSpeed: 'Global Speed',
   preferredQuality: 'Preferred Quality',
@@ -27,7 +26,6 @@ const en: Messages = {
 const zhCN: Messages = {
   appTitle: '哔哩哔哩倍速大师',
   madeBy: '作者：cholf5',
-  donate: '赞助',
   currentSpeed: '当前倍速',
   defaultSpeed: '全局倍速',
   preferredQuality: '首选画质',
@@ -51,7 +49,6 @@ const zhCN: Messages = {
 const zhTW: Messages = {
   appTitle: '嗶哩嗶哩倍速大師',
   madeBy: '作者：cholf5',
-  donate: '贊助',
   currentSpeed: '目前倍速',
   defaultSpeed: '全域倍速',
   preferredQuality: '偏好畫質',
@@ -75,7 +72,6 @@ const zhTW: Messages = {
 const ja: Messages = {
   appTitle: 'Bilibili スピードマスター',
   madeBy: '作者: cholf5',
-  donate: '寄付',
   currentSpeed: '現在の速度',
   defaultSpeed: 'グローバル速度',
   preferredQuality: '優先画質',
@@ -99,7 +95,6 @@ const ja: Messages = {
 const ko: Messages = {
   appTitle: '빌리빌리 속도 마스터',
   madeBy: '제작자: cholf5',
-  donate: '후원',
   currentSpeed: '현재 속도',
   defaultSpeed: '전역 속도',
   preferredQuality: '선호 화질',
@@ -123,7 +118,6 @@ const ko: Messages = {
 const es: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Creado por cholf5',
-  donate: 'Donar',
   currentSpeed: 'Velocidad actual',
   defaultSpeed: 'Velocidad global',
   preferredQuality: 'Calidad preferida',
@@ -147,7 +141,6 @@ const es: Messages = {
 const fr: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Créé par cholf5',
-  donate: 'Faire un don',
   currentSpeed: 'Vitesse actuelle',
   defaultSpeed: 'Vitesse globale',
   preferredQuality: 'Qualité préférée',
@@ -171,7 +164,6 @@ const fr: Messages = {
 const de: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Erstellt von cholf5',
-  donate: 'Spenden',
   currentSpeed: 'Aktuelle Geschwindigkeit',
   defaultSpeed: 'Globale Geschwindigkeit',
   preferredQuality: 'Bevorzugte Qualität',
@@ -195,7 +187,6 @@ const de: Messages = {
 const ru: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Автор: cholf5',
-  donate: 'Пожертвовать',
   currentSpeed: 'Текущая скорость',
   defaultSpeed: 'Глобальная скорость',
   preferredQuality: 'Предпочтительное качество',
@@ -219,7 +210,6 @@ const ru: Messages = {
 const ptBR: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Feito por cholf5',
-  donate: 'Doar',
   currentSpeed: 'Velocidade atual',
   defaultSpeed: 'Velocidade global',
   preferredQuality: 'Qualidade preferida',
@@ -243,7 +233,6 @@ const ptBR: Messages = {
 const it: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Creato da cholf5',
-  donate: 'Dona',
   currentSpeed: 'Velocità attuale',
   defaultSpeed: 'Velocità globale',
   preferredQuality: 'Qualità preferita',
@@ -267,7 +256,6 @@ const it: Messages = {
 const tr: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Yapan: cholf5',
-  donate: 'Bağış yap',
   currentSpeed: 'Geçerli hız',
   defaultSpeed: 'Global hız',
   preferredQuality: 'Tercih edilen kalite',
@@ -291,7 +279,6 @@ const tr: Messages = {
 const vi: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Tác giả: cholf5',
-  donate: 'Ủng hộ',
   currentSpeed: 'Tốc độ hiện tại',
   defaultSpeed: 'Tốc độ toàn cục',
   preferredQuality: 'Chất lượng ưu tiên',
@@ -315,7 +302,6 @@ const vi: Messages = {
 const th: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'สร้างโดย cholf5',
-  donate: 'บริจาค',
   currentSpeed: 'ความเร็วปัจจุบัน',
   defaultSpeed: 'ความเร็วทั่วไป',
   preferredQuality: 'คุณภาพที่ต้องการ',
@@ -339,7 +325,6 @@ const th: Messages = {
 const id: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Dibuat oleh cholf5',
-  donate: 'Donasi',
   currentSpeed: 'Kecepatan saat ini',
   defaultSpeed: 'Kecepatan global',
   preferredQuality: 'Kualitas pilihan',
@@ -363,7 +348,6 @@ const id: Messages = {
 const ar: Messages = {
   appTitle: 'بيليبيلي ماستر السرعة',
   madeBy: 'أنشأه cholf5',
-  donate: 'تبرع',
   currentSpeed: 'السرعة الحالية',
   defaultSpeed: 'السرعة العامة',
   preferredQuality: 'الجودة المفضلة',
@@ -387,7 +371,6 @@ const ar: Messages = {
 const hi: Messages = {
   appTitle: 'बिलीबिली स्पीड मास्टर',
   madeBy: 'निर्माता: cholf5',
-  donate: 'दान करें',
   currentSpeed: 'वर्तमान गति',
   defaultSpeed: 'ग्लोबल गति',
   preferredQuality: 'पसंदीदा गुणवत्ता',
@@ -411,7 +394,6 @@ const hi: Messages = {
 const pl: Messages = {
   appTitle: 'Bilibili Speed Master',
   madeBy: 'Autor: cholf5',
-  donate: 'Wesprzyj',
   currentSpeed: 'Aktualna prędkość',
   defaultSpeed: 'Prędkość globalna',
   preferredQuality: 'Preferowana jakość',

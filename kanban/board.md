@@ -2,7 +2,7 @@
 
 ## Backlog
 - D-6 Content script 性能与健壮性清理（observer 节流 / unhandled rejection / config 缓存）[P1]
-- D-8 发布元数据修正（package.json 名称版本 / 占位链接 / Firefox gecko id）[P1]
+- D-17 核实 options_ui.open_in_tab 被 WXT 丢弃的行为 [P3]
 - D-9 快捷键可配置 + options 快捷键清单 [P2]
 - D-10 popup 频道卡一键清除覆盖、跟随全局 [P2]
 - D-11 options 频道表格搜索 [P2]
@@ -15,14 +15,13 @@
 - 
 
 ## In Progress
-- D-7 移除不需要的 tabs 权限（dev 完成：permissions 收敛为 ['storage']，双端 manifest + 测试 + 类型检查通过；待真机冒烟与评审）（P1）
-- D-5 options lastVisit 显示本地时间（本地时区格式化 + 单测完成，待评审）（P1）
-- D-2 消除跨上下文配置写入竞态（dev 完成 + PM 评审打回一次已修复）（P0）
+- 
 
 ## In Review
 - 
 
 ## Testing / QA
+- D-8 发布元数据修正（package.json 名称版本 / 占位链接 / Firefox gecko id；dev + 独立审查通过，含 pnpm-workspace.yaml 入库；待用户真机验收：TC2/TC3 与 AMO 校验）（P1）
 - D-7 移除不需要的 tabs 权限（dev + PM 评审 + QA 完成；待用户真机验收）（P1）
 - D-5 options lastVisit 显示本地时间（dev + PM 评审 + QA 完成；待用户真机验收）（P1）
 - D-2 消除配置写入竞态（拆 key + 写队列 + debounce；dev + PM 评审打回一次已修复 + QA 完成；待用户真机验收）（P0）

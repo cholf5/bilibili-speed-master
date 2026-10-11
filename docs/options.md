@@ -67,14 +67,6 @@ Below is a precise, structured reverse-engineering of the second UI.
   * 5 filled stars
   * Color: Yellow
   * Inline, horizontally aligned with text
-* **Donate button**
-
-  * Text: `Donate`
-  * Rounded rectangle
-  * Dark background
-  * Bright multicolor glow border
-  * White text
-  * Slightly taller than star icons
 
 ---
 
@@ -236,7 +228,6 @@ Each row has uniform height.
 * Secondary text: #b0b0b0
 * Accent blue: #4da3ff
 * Accent yellow (stars): #f5c518
-* Donate glow: multicolor gradient (cyan / green / yellow)
 
 ### Typography
 

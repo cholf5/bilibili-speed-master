@@ -309,14 +309,6 @@ function App() {
             </a>
           </div>
         </div>
-        <a
-          className="donate-button"
-          href="https://x.com/cholf5"
-          target="_blank"
-          rel="noreferrer"
-        >
-          {t('donate')}
-        </a>
       </header>
 
       {channel && (

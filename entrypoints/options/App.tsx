@@ -300,14 +300,6 @@ function App() {
               &#9733;&#9733;&#9733;&#9733;&#9733;
             </span>
           </div>
-          <a
-            className="donate-button"
-            href="https://x.com/cholf5"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t('donate')}
-          </a>
         </div>
       </header>
 

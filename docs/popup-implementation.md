@@ -3,7 +3,7 @@
 This document summarizes how the popup UI is wired to configuration state.
 
 ## Structure Mapping
-- Header/branding, donate button, controls, stats, rating, and options button are implemented in `entrypoints/popup/App.tsx`.
+- Header/branding, controls, stats, rating, and options button are implemented in `entrypoints/popup/App.tsx`.
 - Styles and layout tokens are in `entrypoints/popup/App.css` and `entrypoints/popup/style.css`.
 
 ## Data Wiring
