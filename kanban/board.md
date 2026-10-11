@@ -2,7 +2,6 @@
 
 ## Backlog
 - D-17 核实 options_ui.open_in_tab 被 WXT 丢弃的行为 [P3]
-- D-13 直播页支持评估（产品决策）[P3]
 - D-14 content.ts 拆分模块 + 共享常量收敛 [P3]
 
 ## To Do
@@ -12,7 +11,7 @@
 - 
 
 ## In Review
-- 
+- D-13 直播页支持评估（调研完成 + PM 抽查代码论断属实；决策文档 docs/live-support-evaluation.md，倾向正播不支持+回放页 /record/ 支持；**待维护者拍板**，拍板后另立实现卡）（P3）
 
 ## Testing / QA
 - D-16 可访问性修正（空格键豁免 + widget aria-label i18n；新增 src/shared/focus-target.ts 纯判定 + 22 例单测，widget aria-label 走 t() ×18 语言；dev + 独立审查通过，P2 记录补全已落实，202 例单测绿 + compile/build 通过；待用户真机验收 TC1-TC4，关注「点击按钮后焦点驻留」体感变化与 B 站双响应）（P2）
