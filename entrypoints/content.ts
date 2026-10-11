@@ -6,6 +6,11 @@ import { createConfigCache } from '@/src/shared/config-cache';
 import { shouldCountPlaybackDelta, updateSavedStats } from '@/src/shared/stats';
 import { computeTimeSaved, getVideoIdFromUrl, sanitizeChannelName } from '@/src/shared/video';
 import { createFrameThrottle } from '@/src/shared/throttle';
+import {
+  DEFAULT_SHORTCUT_ACTIONS,
+  matchShortcut,
+  type ShortcutActionId,
+} from '@/src/shared/shortcuts';
 
 const URL_POLL_INTERVAL_MS = 800;
 const KEYBOARD_SPEED_STEP = 0.25;
@@ -1084,8 +1089,142 @@ export default defineContentScript({
       event.stopImmediatePropagation();
     };
 
+    // D-9: executes a matched action. All the behavior lives in the big
+    // switch below (glue only — matching, defaults, and conflict rules are
+    // in src/shared/shortcuts.ts); each case reproduces the pre-D-9
+    // handleKeydown branch it replaces.
+    const runShortcutAction = (actionId: ShortcutActionId, event: KeyboardEvent): void => {
+      const video = activeVideo;
+      if (!video) {
+        return;
+      }
+      const def = DEFAULT_SHORTCUT_ACTIONS[actionId];
+      // Frame stepping is only defined while paused; when playing, the key
+      // falls through unconsumed exactly as the old '.'/',' branches did.
+      if (def.pausedOnly && !video.paused) {
+        return;
+      }
+      if (def.consumes) {
+        consume(event);
+      }
+
+      switch (actionId) {
+        case 'togglePlay':
+        case 'togglePlaySpace':
+        case 'mediaPlayPause':
+          togglePlay(video);
+          return;
+        case 'mediaStop':
+          video.pause();
+          video.currentTime = 0;
+          return;
+        case 'toggleMute':
+          video.muted = !video.muted;
+          return;
+        case 'seekBackwardLarge':
+          seekBy(video, -SEEK_STEP_LARGE);
+          return;
+        case 'seekForwardLarge':
+          seekBy(video, SEEK_STEP_LARGE);
+          return;
+        case 'seekBackwardSmall':
+          seekBy(video, -SEEK_STEP_SMALL);
+          return;
+        case 'seekForwardSmall':
+          seekBy(video, SEEK_STEP_SMALL);
+          return;
+        case 'volumeUp':
+          video.volume = Math.min(1, video.volume + VOLUME_STEP);
+          return;
+        case 'volumeDown':
+          video.volume = Math.max(0, video.volume - VOLUME_STEP);
+          return;
+        case 'seekToStart':
+          video.currentTime = 0;
+          return;
+        case 'seekToEnd':
+          if (Number.isFinite(video.duration)) {
+            video.currentTime = video.duration;
+          }
+          return;
+        case 'stepForward':
+          seekBy(video, FRAME_STEP);
+          return;
+        case 'stepBackward':
+          seekBy(video, -FRAME_STEP);
+          return;
+        case 'speedUp':
+        case 'slowDown':
+          lastUserIntentAt = Date.now();
+          applyPlaybackRate(
+            video,
+            video.playbackRate +
+              (actionId === 'speedUp' ? KEYBOARD_SPEED_STEP : -KEYBOARD_SPEED_STEP),
+          );
+          return;
+        case 'toggleFullscreen':
+          toggleFullscreen(video);
+          return;
+        case 'toggleCaptions':
+          toggleCaptions(video);
+          return;
+        case 'toggleMiniPlayer': {
+          const clicked = clickPlayerButton([
+            '.bpx-player-ctrl-pip',
+            '.bilibili-player-video-btn-pip',
+            '.bpx-player-ctrl-miniplayer',
+            '.bilibili-player-video-btn-miniplayer',
+          ]);
+          if (!clicked && document.pictureInPictureElement !== video) {
+            // Rejects when PiP is disabled for the element or another element
+            // is already presenting; best-effort like the rest of the shortcuts.
+            void video.requestPictureInPicture?.().catch(() => {});
+          }
+          return;
+        }
+        case 'nextVideo':
+        // Review fix (D-9): the first executor revision dropped this case and
+        // silently no-op'ed the MediaTrackNext media key (pre-D-9: clicked the
+        // next-track button, unconsumed). Same handler as Shift+N — the
+        // consumes flag already differs via the def (media keys pass through).
+        case 'mediaTrackNext':
+          clickPlayerButton(['.bpx-player-ctrl-next', '.bilibili-player-video-btn-next']);
+          return;
+        case 'prevVideo':
+          clickPlayerButton(['.bpx-player-ctrl-prev', '.bilibili-player-video-btn-prev']);
+          return;
+        case 'focusSearch':
+          focusSearch();
+          return;
+        case 'seekToPercent0':
+        case 'seekToPercent1':
+        case 'seekToPercent2':
+        case 'seekToPercent3':
+        case 'seekToPercent4':
+        case 'seekToPercent5':
+        case 'seekToPercent6':
+        case 'seekToPercent7':
+        case 'seekToPercent8':
+        case 'seekToPercent9':
+          // Digits carry their duration fraction in the def (0 → 0, 1 → 0.1 …).
+          seekToPercent(video, def.seekFraction ?? 0);
+          return;
+      }
+
+      // Compile-time exhaustiveness guard (D-9 review): adding an action to
+      // the shared table without a case above fails `pnpm compile` right here
+      // (a `default:` branch would defeat the narrowing — don't add one). The
+      // runtime counterpart is the source guard in
+      // src/shared/shortcuts.test.ts, which fails the suite when any action
+      // id has no `case '<id>':` label.
+      const exhaustive: never = actionId;
+      return exhaustive;
+    };
+
     const handleKeydown = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.altKey || event.metaKey) {
+      // IME safety: keys pressed while a composition is in progress belong to
+      // the IME, not to the player.
+      if (event.isComposing) {
         return;
       }
       // Keys pressed while a widget control has focus belong to the widget
@@ -1097,158 +1236,17 @@ export default defineContentScript({
         return;
       }
 
-      const key = event.key;
-      const code = event.code;
-
-      if (key === ' ' || key === 'k') {
-        consume(event);
-        togglePlay(activeVideo);
-        return;
-      }
-
-      if (key === 'm') {
-        consume(event);
-        activeVideo.muted = !activeVideo.muted;
-        return;
-      }
-
-      if (key === 'j') {
-        consume(event);
-        seekBy(activeVideo, -SEEK_STEP_LARGE);
-        return;
-      }
-
-      if (key === 'l') {
-        consume(event);
-        seekBy(activeVideo, SEEK_STEP_LARGE);
-        return;
-      }
-
-      if (key === 'ArrowLeft') {
-        consume(event);
-        seekBy(activeVideo, -SEEK_STEP_SMALL);
-        return;
-      }
-
-      if (key === 'ArrowRight') {
-        consume(event);
-        seekBy(activeVideo, SEEK_STEP_SMALL);
-        return;
-      }
-
-      if (key === 'ArrowUp') {
-        consume(event);
-        activeVideo.volume = Math.min(1, activeVideo.volume + VOLUME_STEP);
-        return;
-      }
-
-      if (key === 'ArrowDown') {
-        consume(event);
-        activeVideo.volume = Math.max(0, activeVideo.volume - VOLUME_STEP);
-        return;
-      }
-
-      if (key === 'Home') {
-        consume(event);
-        activeVideo.currentTime = 0;
-        return;
-      }
-
-      if (key === 'End') {
-        consume(event);
-        if (Number.isFinite(activeVideo.duration)) {
-          activeVideo.currentTime = activeVideo.duration;
-        }
-        return;
-      }
-
-      if (key === '.' && activeVideo.paused) {
-        consume(event);
-        seekBy(activeVideo, FRAME_STEP);
-        return;
-      }
-
-      if (key === ',' && activeVideo.paused) {
-        consume(event);
-        seekBy(activeVideo, -FRAME_STEP);
-        return;
-      }
-
-      if (key === '>' || key === '<') {
-        consume(event);
-        lastUserIntentAt = Date.now();
-        const delta = key === '>' ? KEYBOARD_SPEED_STEP : -KEYBOARD_SPEED_STEP;
-        applyPlaybackRate(activeVideo, activeVideo.playbackRate + delta);
-        return;
-      }
-
-      if (key === 'f') {
-        consume(event);
-        toggleFullscreen(activeVideo);
-        return;
-      }
-
-      if (key === 'c') {
-        consume(event);
-        toggleCaptions(activeVideo);
-        return;
-      }
-
-      if (key === 'i') {
-        consume(event);
-        const clicked = clickPlayerButton([
-          '.bpx-player-ctrl-pip',
-          '.bilibili-player-video-btn-pip',
-          '.bpx-player-ctrl-miniplayer',
-          '.bilibili-player-video-btn-miniplayer',
-        ]);
-        if (!clicked && document.pictureInPictureElement !== activeVideo) {
-          // Rejects when PiP is disabled for the element or another element
-          // is already presenting; best-effort like the rest of the shortcuts.
-          void activeVideo.requestPictureInPicture?.().catch(() => {});
-        }
-        return;
-      }
-
-      if (event.shiftKey && key === 'N') {
-        consume(event);
-        clickPlayerButton(['.bpx-player-ctrl-next', '.bilibili-player-video-btn-next']);
-        return;
-      }
-
-      if (event.shiftKey && key === 'P') {
-        consume(event);
-        clickPlayerButton(['.bpx-player-ctrl-prev', '.bilibili-player-video-btn-prev']);
-        return;
-      }
-
-      if (key === '/') {
-        consume(event);
-        focusSearch();
-        return;
-      }
-
-      if (key >= '0' && key <= '9') {
-        consume(event);
-        const number = Number(key);
-        const percent = number === 0 ? 0 : number / 10;
-        seekToPercent(activeVideo, percent);
-        return;
-      }
-
-      if (code === 'MediaPlayPause') {
-        togglePlay(activeVideo);
-        return;
-      }
-
-      if (code === 'MediaStop') {
-        activeVideo.pause();
-        activeVideo.currentTime = 0;
-        return;
-      }
-
-      if (code === 'MediaTrackNext') {
-        clickPlayerButton(['.bpx-player-ctrl-next', '.bilibili-player-video-btn-next']);
+      // D-9: keydown is a synchronous path — it must not await the async
+      // config cache read — so the shortcut table comes from peek(): the
+      // DEFAULT bindings until the first read lands, then patched by every
+      // storage.onChanged (options remaps reach video pages without reload).
+      // Modifier combinations are part of each binding; the old top-level
+      // ctrl/alt/meta early return is subsumed by exact modifier matching
+      // (default bindings never carry ctrl/alt/meta, so those events still
+      // match nothing and fall through unconsumed — same net behavior).
+      const actionId = matchShortcut(event, configCache.peek().global.shortcuts);
+      if (actionId) {
+        runShortcutAction(actionId, event);
       }
     };
 

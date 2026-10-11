@@ -1,3 +1,17 @@
+// D-9: shortcut bindings live in the global partition as action → binding
+// (null = disabled). Types, defaults, and the schema sanitizer come from
+// src/shared/shortcuts.ts so content matching and the options recorder share
+// exactly one source of truth.
+import {
+  DEFAULT_SHORTCUT_BINDINGS,
+  sanitizeShortcuts,
+  type ShortcutActionId,
+  type ShortcutBinding,
+  type ShortcutBindings,
+} from '@/src/shared/shortcuts';
+
+export type { ShortcutActionId, ShortcutBinding, ShortcutBindings };
+
 export type ChannelOverride = {
   channelId: string;
   channelName: string;
@@ -13,6 +27,7 @@ export type SpeedMasterConfig = {
     preferredQuality: string;
     showVideoWidget: boolean;
     videoWidgetPosition: 'topLeft' | 'topRight';
+    shortcuts: ShortcutBindings;
   };
   channels: Record<string, ChannelOverride>;
   stats: {
@@ -39,6 +54,9 @@ export const DEFAULT_CONFIG: SpeedMasterConfig = {
     preferredQuality: 'auto',
     showVideoWidget: true,
     videoWidgetPosition: 'topLeft',
+    // D-9: the pre-D-9 hard-coded keymap (see DEFAULT_SHORTCUT_ACTIONS for
+    // the action-by-action mirror of the old handleKeydown chain).
+    shortcuts: DEFAULT_SHORTCUT_BINDINGS,
   },
   channels: {},
   stats: {
@@ -186,6 +204,10 @@ export const mergeGlobalRaw = (raw: any): SpeedMasterConfig['global'] => {
       global.videoWidgetPosition === 'topLeft' || global.videoWidgetPosition === 'topRight'
         ? global.videoWidgetPosition
         : DEFAULT_CONFIG.global.videoWidgetPosition,
+    // D-9: absent on pre-shortcuts data → the full default table; per-action
+    // holes, invalid entries and unknown action ids are repaired/dropped by
+    // sanitizeShortcuts, and null stays null (disabled).
+    shortcuts: sanitizeShortcuts(global.shortcuts),
   };
 };
 

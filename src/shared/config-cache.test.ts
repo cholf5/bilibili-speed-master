@@ -6,6 +6,7 @@ import {
   type ChannelOverride,
   type SpeedMasterConfig,
 } from '@/src/shared/config';
+import { DEFAULT_SHORTCUT_BINDINGS } from '@/src/shared/shortcuts';
 import { createConfigCache } from '@/src/shared/config-cache';
 
 const flushAsync = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -27,6 +28,7 @@ const makeConfig = (overrides?: {
     preferredQuality: 'auto',
     showVideoWidget: true,
     videoWidgetPosition: 'topLeft',
+    shortcuts: DEFAULT_SHORTCUT_BINDINGS,
   },
   channels: overrides?.channels ?? {},
   stats: { timeSavedSeconds: 0 },
@@ -282,6 +284,9 @@ describe('createConfigCache', () => {
       preferredQuality: 'auto',
       showVideoWidget: true,
       videoWidgetPosition: 'topLeft',
+      // D-9: the raw global carries no shortcuts — mergeGlobalRaw fills the
+      // default keymap exactly as a fresh read would.
+      shortcuts: DEFAULT_SHORTCUT_BINDINGS,
     });
     expect(Object.keys(cache.peek().channels)).toEqual(['valid']);
   });

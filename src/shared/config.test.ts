@@ -238,6 +238,47 @@ describe('mergeConfig', () => {
       preferredQuality: '1080p',
       showVideoWidget: false,
       videoWidgetPosition: 'topRight',
+      // D-9: shortcuts absent from the raw global fall back to the defaults.
+      shortcuts: DEFAULT_CONFIG.global.shortcuts,
+    });
+  });
+
+  // D-9: global.shortcuts merge compatibility. The per-entry repair rules
+  // (unknown ids, empty codes, __proto__ safety, …) live in
+  // src/shared/shortcuts.test.ts; here we verify the config-schema wiring.
+  describe('global.shortcuts (D-9)', () => {
+    it('fills the default keymap for old data without a shortcuts field (TC4)', () => {
+      const merged = mergeConfig({
+        global: { defaultSpeed: 1.5 },
+      });
+      expect(merged.global.shortcuts).toEqual(DEFAULT_CONFIG.global.shortcuts);
+      expect(merged.global.shortcuts.togglePlay).toEqual({ code: 'KeyK', key: 'k' });
+    });
+
+    it('keeps custom bindings and explicit disables on a round-trip', () => {
+      const shortcuts = {
+        ...DEFAULT_CONFIG.global.shortcuts,
+        togglePlay: { code: 'KeyP', key: 'p' },
+        toggleMute: null,
+      };
+      const merged = mergeConfig({ global: { shortcuts } });
+      expect(merged.global.shortcuts.togglePlay).toEqual({ code: 'KeyP', key: 'p' });
+      expect(merged.global.shortcuts.toggleMute).toBeNull();
+      // A second merge of the merged output is stable.
+      expect(mergeConfig(merged).global.shortcuts).toEqual(merged.global.shortcuts);
+    });
+
+    it('repairs invalid entries instead of leaking them into the schema', () => {
+      const merged = mergeConfig({
+        global: {
+          shortcuts: {
+            togglePlay: { code: '' },
+            turboMode: { code: 'KeyT' },
+          },
+        },
+      });
+      expect(merged.global.shortcuts.togglePlay).toEqual({ code: 'KeyK', key: 'k' });
+      expect('turboMode' in merged.global.shortcuts).toBe(false);
     });
   });
 

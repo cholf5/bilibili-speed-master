@@ -2,7 +2,6 @@
 
 ## Backlog
 - D-17 核实 options_ui.open_in_tab 被 WXT 丢弃的行为 [P3]
-- D-9 快捷键可配置 + options 快捷键清单 [P2]
 - D-10 popup 频道卡一键清除覆盖、跟随全局 [P2]
 - D-11 options 频道表格搜索 [P2]
 - D-13 直播页支持评估（产品决策）[P3]
@@ -19,6 +18,7 @@
 - 
 
 ## Testing / QA
+- D-9 快捷键可配置 + options 快捷键清单（34 action 查表 + options 录制/冲突交换/禁用/恢复默认；dev 完成 + 独立审查打回一次已修复（mediaTrackNext 执行分支遗漏 + 执行器源码守卫 + 恢复默认 confirm）+ PM 复提核验通过，167 例单测绿 + compile/build 通过；待用户真机验收 TC1-TC4）（P2）
 - D-12 后台播放统计口径验证与修正（2s 固定阈值改墙钟比例口径 shouldCountPlaybackDelta；dev + 独立审查通过，P1 文档修订+P2 已落实，134 例单测绿；实测矩阵 TC1/TC2 待用户真机验收）（P2）
 - D-6 Content script 性能与健壮性清理（observer 节流 / unhandled rejection / config 缓存；dev + 独立审查通过，P2 已落实，119 例单测绿；待用户真机验收 TC1-TC4）（P1）
 - D-8 发布元数据修正（package.json 名称版本 / 占位链接 / Firefox gecko id；dev + 独立审查通过，含 pnpm-workspace.yaml 入库；待用户真机验收：TC2/TC3 与 AMO 校验）（P1）

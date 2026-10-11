@@ -51,9 +51,11 @@ export type ConfigCache = {
   /** Resolves the cached config; awaits the initial storage read first. */
   read: () => Promise<SpeedMasterConfig>;
   /**
-   * Current in-memory value without awaiting the initial load. Test /
-   * future-diagnostics hook: production code reads through `read` only
-   * (kept intentionally for tests and debugging).
+   * Current in-memory value without awaiting the initial load. D-9: the
+   * keydown handler (a synchronous path that must not await storage) reads
+   * its shortcuts snapshot through this — DEFAULT bindings until the first
+   * read lands, then whatever onChanged last patched in. Every other
+   * production reader goes through `read`.
    */
   peek: () => SpeedMasterConfig;
   /**

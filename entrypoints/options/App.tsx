@@ -9,6 +9,17 @@ import {
 } from '@/src/shared/config';
 import { STATS_STORAGE_KEY, getSavedStats, updateSavedStats } from '@/src/shared/stats';
 import { t } from '@/src/shared/i18n';
+import {
+  SHORTCUT_ACTION_ORDER,
+  bindingEquals,
+  captureShortcut,
+  cloneDefaultShortcuts,
+  findBindingConflict,
+  formatShortcutBinding,
+  type ShortcutActionId,
+  type ShortcutBinding,
+  type ShortcutBindings,
+} from '@/src/shared/shortcuts';
 
 const SPEED_STEP = 0.1;
 const SPEED_MIN = 0.1;
@@ -57,11 +68,68 @@ export const formatTimestamp = (value?: string) => {
   return `${day} ${time}`;
 };
 
+// D-9: action id → i18n key. seekToPercent0..9 share one template key with a
+// {n} placeholder; togglePlaySpace shares the togglePlay name (both are
+// "play / pause", split into two actions so either key can be remapped).
+const SHORTCUT_ACTION_NAME_KEYS: Record<ShortcutActionId, string> = {
+  togglePlay: 'actionTogglePlay',
+  togglePlaySpace: 'actionTogglePlay',
+  toggleMute: 'actionToggleMute',
+  seekBackwardLarge: 'actionSeekBackwardLarge',
+  seekForwardLarge: 'actionSeekForwardLarge',
+  seekBackwardSmall: 'actionSeekBackwardSmall',
+  seekForwardSmall: 'actionSeekForwardSmall',
+  volumeUp: 'actionVolumeUp',
+  volumeDown: 'actionVolumeDown',
+  seekToStart: 'actionSeekToStart',
+  seekToEnd: 'actionSeekToEnd',
+  stepForward: 'actionStepForward',
+  stepBackward: 'actionStepBackward',
+  speedUp: 'actionSpeedUp',
+  slowDown: 'actionSlowDown',
+  toggleFullscreen: 'actionToggleFullscreen',
+  toggleCaptions: 'actionToggleCaptions',
+  toggleMiniPlayer: 'actionToggleMiniPlayer',
+  nextVideo: 'actionNextVideo',
+  prevVideo: 'actionPrevVideo',
+  focusSearch: 'actionFocusSearch',
+  seekToPercent0: 'actionSeekPercent',
+  seekToPercent1: 'actionSeekPercent',
+  seekToPercent2: 'actionSeekPercent',
+  seekToPercent3: 'actionSeekPercent',
+  seekToPercent4: 'actionSeekPercent',
+  seekToPercent5: 'actionSeekPercent',
+  seekToPercent6: 'actionSeekPercent',
+  seekToPercent7: 'actionSeekPercent',
+  seekToPercent8: 'actionSeekPercent',
+  seekToPercent9: 'actionSeekPercent',
+  mediaPlayPause: 'actionMediaPlayPause',
+  mediaStop: 'actionMediaStop',
+  mediaTrackNext: 'actionMediaTrackNext',
+};
+
+const shortcutActionName = (id: ShortcutActionId): string => {
+  if (SHORTCUT_ACTION_NAME_KEYS[id] === 'actionSeekPercent') {
+    const percent = Number(id.slice('seekToPercent'.length)) * 10;
+    return t('actionSeekPercent').replace('{n}', String(percent));
+  }
+  return t(SHORTCUT_ACTION_NAME_KEYS[id]);
+};
+
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
   const [avatarMap, setAvatarMap] = useState<Record<string, string>>({});
   const [timeSavedSeconds, setTimeSavedSeconds] = useState(0);
   const avatarUrlsRef = useRef<string[]>([]);
+  // D-9: shortcut recording state. `recording` is the action awaiting a new
+  // key; `pending` holds a captured binding that conflicts with another
+  // enabled action until the user confirms the swap or cancels.
+  const [recording, setRecording] = useState<ShortcutActionId | null>(null);
+  const [pending, setPending] = useState<{
+    binding: ShortcutBinding;
+    conflict: ShortcutActionId;
+  } | null>(null);
+  const recordingRowRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     getConfig().then(setConfig);
@@ -233,6 +301,114 @@ function App() {
     }
   };
 
+  // D-9: shortcut remapping writes through the shared updateConfig channel
+  // (single writer, same as every other options control). storage.onChanged
+  // fans the change out to content scripts, so remaps apply on video pages
+  // without a reload.
+  const shortcuts = config?.global.shortcuts ?? null;
+
+  const applyShortcut = async (id: ShortcutActionId, binding: ShortcutBinding | null) => {
+    const current = config?.global.shortcuts;
+    if (!current) {
+      return;
+    }
+    // Reference/shape-equal binding: skip the storage write entirely.
+    if (bindingEquals(current[id], binding)) {
+      return;
+    }
+    await updateGlobal({ shortcuts: { ...current, [id]: binding } });
+  };
+
+  // PM decision (D-9): a recorded key held by another enabled action is
+  // resolved by SWAPPING the two bindings (the other action gets this
+  // action's previous binding, null included) instead of blocking the save.
+  const swapShortcut = async () => {
+    if (!recording || !pending || !config) {
+      return;
+    }
+    const target = recording;
+    const other = pending.conflict;
+    const current = config.global.shortcuts;
+    await updateGlobal({
+      shortcuts: { ...current, [target]: pending.binding, [other]: current[target] },
+    });
+    setRecording(null);
+    setPending(null);
+  };
+
+  const restoreDefaultShortcuts = async () => {
+    // Review fix (D-9): bulk reset wipes every remap at once — confirm first,
+    // aligned with the import flow's dialog.
+    if (!window.confirm(t('shortcutsRestoreConfirm'))) {
+      return;
+    }
+    // cloneDefaultShortcuts: never hand the shared DEFAULT table to storage.
+    await updateGlobal({ shortcuts: cloneDefaultShortcuts() });
+  };
+
+  const startRecording = (id: ShortcutActionId) => {
+    setRecording(id);
+    setPending(null);
+  };
+
+  const cancelRecording = () => {
+    setRecording(null);
+    setPending(null);
+  };
+
+  // While recording, capture the next keydown (Esc cancels; bare modifiers
+  // are ignored; clicking outside the row cancels). Capture-phase window
+  // listeners so the recorded key can neither scroll the page nor trigger
+  // any other control, and re-record while a conflict is pending.
+  useEffect(() => {
+    if (!recording) {
+      return;
+    }
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      if (event.key === 'Escape') {
+        setRecording(null);
+        setPending(null);
+        return;
+      }
+      const binding = captureShortcut(event);
+      if (!binding) {
+        return;
+      }
+      const current = config?.global.shortcuts;
+      if (!current) {
+        return;
+      }
+      const conflict = findBindingConflict(current, recording, binding);
+      if (!conflict) {
+        if (bindingEquals(current[recording], binding)) {
+          // Same key as before: nothing to write, just leave recording.
+          setRecording(null);
+          return;
+        }
+        void applyShortcut(recording, binding);
+        setRecording(null);
+        return;
+      }
+      setPending({ binding, conflict });
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const row = recordingRowRef.current;
+      if (row && event.target instanceof Node && row.contains(event.target)) {
+        return;
+      }
+      setRecording(null);
+      setPending(null);
+    };
+    window.addEventListener('keydown', onKeyDown, true);
+    window.addEventListener('pointerdown', onPointerDown, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, true);
+      window.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [recording, config]);
+
   const updateChannel = async (channelId: string, patch: Partial<ChannelOverride>) => {
     const next = await updateConfig((current) => {
       const existing = current.channels[channelId];
@@ -366,6 +542,105 @@ function App() {
               <option value="topRight">Top right</option>
             </select>
           </div>
+        </div>
+      </section>
+
+      <section className="shortcuts">
+        <div className="shortcuts__header">
+          <div className="shortcuts__title">{t('optionsShortcuts')}</div>
+          <button
+            type="button"
+            className="shortcuts__button"
+            onClick={restoreDefaultShortcuts}
+            disabled={!shortcuts}
+          >
+            {t('shortcutsRestoreDefaults')}
+          </button>
+        </div>
+        <div className="shortcuts__list">
+          {SHORTCUT_ACTION_ORDER.map((id) => {
+            const isRecording = recording === id;
+            const binding = shortcuts ? shortcuts[id] : null;
+            const conflictAction = isRecording && pending ? pending.conflict : null;
+            return (
+              <div
+                key={id}
+                className={`shortcuts__row${isRecording ? ' shortcuts__row--recording' : ''}`}
+                ref={isRecording ? recordingRowRef : undefined}
+              >
+                <span className="shortcuts__name">{shortcutActionName(id)}</span>
+                <span className="shortcuts__binding">
+                  {isRecording
+                    ? pending
+                      ? formatShortcutBinding(pending.binding)
+                      : t('shortcutsRecordHint')
+                    : !shortcuts
+                      ? '-'
+                      : binding
+                        ? formatShortcutBinding(binding)
+                        : t('shortcutsDisabled')}
+                </span>
+                <span className="shortcuts__controls">
+                  {isRecording ? (
+                    conflictAction ? (
+                      <>
+                        <button
+                          type="button"
+                          className="shortcuts__button shortcuts__button--primary"
+                          onClick={() => void swapShortcut()}
+                        >
+                          {t('shortcutsSwap')}
+                        </button>
+                        <button
+                          type="button"
+                          className="shortcuts__button"
+                          onClick={cancelRecording}
+                        >
+                          {t('shortcutsCancel')}
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="shortcuts__button"
+                        onClick={cancelRecording}
+                      >
+                        {t('shortcutsCancel')}
+                      </button>
+                    )
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        className="shortcuts__button"
+                        onClick={() => startRecording(id)}
+                        disabled={!shortcuts}
+                      >
+                        {t('shortcutsChange')}
+                      </button>
+                      {binding && (
+                        <button
+                          type="button"
+                          className="shortcuts__button"
+                          onClick={() => void applyShortcut(id, null)}
+                        >
+                          {t('shortcutsDisable')}
+                        </button>
+                      )}
+                    </>
+                  )}
+                </span>
+                {conflictAction && (
+                  <div className="shortcuts__conflict">
+                    {t('shortcutsConflictWith').replace(
+                      '{action}',
+                      shortcutActionName(conflictAction),
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
