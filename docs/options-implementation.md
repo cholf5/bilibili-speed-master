@@ -16,4 +16,8 @@ This document summarizes how the options page UI maps to config data.
 - When there are no overrides, a placeholder row is shown.
 
 ## Page Behavior
-- Options open in a dedicated tab via `options_ui.open_in_tab` in `wxt.config.ts`.
+- Options open in a dedicated tab: WXT regenerates `options_ui` from the options
+  entrypoint (a hand-written `options_ui` in `wxt.config.ts` is silently
+  dropped), so the behavior is declared via
+  `<meta name="manifest.open_in_tab" content="true" />` in
+  `entrypoints/options/index.html` (see kanban D-17).

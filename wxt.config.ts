@@ -10,10 +10,10 @@ export default defineConfig({
     description: 'Set a global default speed for Bilibili videos with per-channel overrides.',
     permissions: ['storage'],
     host_permissions: ['*://*.bilibili.com/*'],
-    options_ui: {
-      page: 'options.html',
-      open_in_tab: true,
-    },
+    // D-17: WXT regenerates options_ui from the options entrypoint, so any
+    // options_ui block here is silently dropped. The open-in-tab behavior is
+    // controlled by <meta name="manifest.open_in_tab"> in
+    // entrypoints/options/index.html (open in its own tab: true).
     action: {
       default_title: 'Bilibili Speed Master',
     },
