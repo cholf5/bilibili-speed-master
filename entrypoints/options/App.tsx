@@ -21,10 +21,10 @@ import {
   type ShortcutBinding,
   type ShortcutBindings,
 } from '@/src/shared/shortcuts';
-
-const SPEED_STEP = 0.1;
-const SPEED_MIN = 0.1;
-const SPEED_MAX = 4;
+// D-14: speed constants/formatters and normalizeAvatarUrl come from the shared
+// modules instead of local copies (previously re-defined here).
+import { SPEED_STEP, clampSpeed, formatSpeed } from '@/src/shared/speed';
+import { normalizeAvatarUrl } from '@/src/shared/video';
 
 // D-11: the table search filters client-side; typing updates the input at
 // full speed while the (200-row-max, D-4) table re-renders once the typing
@@ -38,24 +38,6 @@ const QUALITY_OPTIONS = [
   { value: '480p', label: '480p' },
   { value: '360p', label: '360p' },
 ];
-
-const clampSpeed = (value: number) =>
-  Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(value * 10) / 10));
-
-const formatSpeed = (value: number) => {
-  const rounded = Math.round(value * 100) / 100;
-  return Number(rounded.toFixed(2)).toString();
-};
-
-const normalizeAvatarUrl = (url?: string | null): string | undefined => {
-  if (!url) {
-    return undefined;
-  }
-  if (url.startsWith('//')) {
-    return `https:${url}`;
-  }
-  return url;
-};
 
 // D-11: client-side channel filter for the table above (pure, exported for
 // unit tests like formatTimestamp). Matches when the keyword (trimmed,

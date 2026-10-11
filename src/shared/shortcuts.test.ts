@@ -494,32 +494,33 @@ describe('formatShortcutBinding', () => {
   });
 });
 
-// D-9 review fix: the shortcut executor in content.ts is hand-maintained
-// glue — the first revision forgot `case 'mediaTrackNext':` and the media key
-// silently stopped working, with the whole suite green. This source-text
-// guard fails the suite whenever an action id from the shared table has no
-// `case '<id>':` label in content.ts, so a future action can no longer ship
-// without an executor branch. content.ts is not importable in the node test
-// environment (it calls WXT's defineContentScript at module scope), hence
-// reading the source instead; the file also cannot live in entrypoints/
-// because WXT treats every entrypoints/*.ts file as an entrypoint.
-const contentSource = readFileSync(
-  new URL('../../entrypoints/content.ts', import.meta.url),
+// D-9 review fix: the shortcut executor is hand-maintained glue — the first
+// revision forgot `case 'mediaTrackNext':` and the media key silently stopped
+// working, with the whole suite green. This source-text guard fails the suite
+// whenever an action id from the shared table has no `case '<id>':` label in
+// the executor, so a future action can no longer ship without an executor
+// branch. The executor is not importable in the node test environment (it
+// needs DOM/extension globals), hence reading the source instead. D-14: the
+// executor moved from entrypoints/content.ts to src/content/shortcuts-glue.ts
+// (WXT treats every entrypoints/*.ts file as an entrypoint, so the split
+// modules live under src/content/); this guard follows it.
+const executorSource = readFileSync(
+  new URL('../../src/content/shortcuts-glue.ts', import.meta.url),
   'utf8',
 );
 
-describe('content.ts shortcut executor guard', () => {
+describe('shortcut executor guard', () => {
   it('handles every action id with an explicit case label', () => {
     for (const id of SHORTCUT_ACTION_ORDER) {
       // The trailing colon keeps `case 'togglePlay':` from matching inside
       // `case 'togglePlaySpace':`.
-      expect(contentSource).toContain(`case '${id}':`);
+      expect(executorSource).toContain(`case '${id}':`);
     }
   });
 
   it('keeps the compile-time exhaustiveness guard in place', () => {
     // The `never` check after the switch is what makes `pnpm compile` fail on
     // a missing case; a `default:` branch would defeat it.
-    expect(contentSource).toContain('const exhaustive: never = actionId;');
+    expect(executorSource).toContain('const exhaustive: never = actionId;');
   });
 });

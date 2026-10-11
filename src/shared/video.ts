@@ -1,6 +1,29 @@
 // Pure helpers extracted verbatim from entrypoints/content.ts (D-15) so they
 // can be unit tested; content.ts imports them instead of defining them inline.
 
+/**
+ * UP/channel identity as detected by the content script and echoed back by the
+ * popup's get-current-channel message. D-14: one shared shape instead of the
+ * content-side ChannelInfo and popup-side CurrentChannel drifting apart.
+ */
+export type ChannelInfo = {
+  channelId: string;
+  channelName: string;
+  avatarUrl?: string;
+};
+
+// D-14: previously re-defined in content.ts, popup/App.tsx and
+// options/App.tsx; Bilibili serves protocol-relative avatar URLs (//i0.hdslb.com/...).
+export const normalizeAvatarUrl = (url?: string | null): string | undefined => {
+  if (!url) {
+    return undefined;
+  }
+  if (url.startsWith('//')) {
+    return `https:${url}`;
+  }
+  return url;
+};
+
 export const sanitizeChannelName = (name?: string | null): string => {
   if (!name) {
     return 'Unknown';

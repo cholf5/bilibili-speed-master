@@ -9,34 +9,13 @@ import {
   type SpeedMasterConfig,
 } from '@/src/shared/config';
 import { STATS_STORAGE_KEY, getSavedStats } from '@/src/shared/stats';
+// D-14: speed constants/formatters and the channel-info shape come from the
+// shared modules instead of local copies (previously re-defined here).
+import { SPEED_STEP, clampSpeed, formatSpeed } from '@/src/shared/speed';
+import { normalizeAvatarUrl, type ChannelInfo } from '@/src/shared/video';
 import { t } from '@/src/shared/i18n';
 
-const SPEED_STEP = 0.1;
-const SPEED_MIN = 0.1;
-const SPEED_MAX = 4;
-
-const clampSpeed = (value: number) =>
-  Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round(value * 10) / 10));
-
-const formatSpeed = (value: number) => {
-  const rounded = Math.round(value * 100) / 100;
-  return Number(rounded.toFixed(2)).toString();
-};
-
-type CurrentChannel = {
-  channelId: string;
-  channelName: string;
-  avatarUrl?: string;
-};
-
-const normalizeAvatarUrl = (url?: string | null): string | undefined => {
-  if (!url) {
-    return undefined;
-  }
-  return url.startsWith('//') ? `https:${url}` : url;
-};
-
-const fetchCurrentChannel = async (): Promise<CurrentChannel | null> => {
+const fetchCurrentChannel = async (): Promise<ChannelInfo | null> => {
   const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
   const tabsApi = root.browser?.tabs ?? root.chrome?.tabs ?? null;
   if (!tabsApi?.query || !tabsApi?.sendMessage) {
@@ -71,7 +50,7 @@ const QUALITY_OPTIONS = [
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
   const [currentSpeed, setCurrentSpeed] = useState<number | null>(null);
-  const [channel, setChannel] = useState<CurrentChannel | null>(null);
+  const [channel, setChannel] = useState<ChannelInfo | null>(null);
   const [timeSavedSeconds, setTimeSavedSeconds] = useState(0);
   const portRef = useRef<any>(null);
 

@@ -9,6 +9,7 @@ import {
   type ShortcutBinding,
   type ShortcutBindings,
 } from '@/src/shared/shortcuts';
+import { SPEED_MAX, SPEED_MIN } from '@/src/shared/speed';
 
 export type { ShortcutActionId, ShortcutBinding, ShortcutBindings };
 
@@ -79,9 +80,6 @@ const storage = (() => {
   };
   return root.browser?.storage?.sync ?? root.chrome?.storage?.sync ?? null;
 })();
-
-const SPEED_MIN = 0.1;
-const SPEED_MAX = 4;
 
 // Entries whose lastVisit failed validation keep the entry without that
 // field (readers tolerate its absence), so the sanitizer works with the
