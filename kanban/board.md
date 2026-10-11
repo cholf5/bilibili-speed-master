@@ -1,7 +1,6 @@
 # Kanban Board
 
 ## Backlog
-- D-6 Content script 性能与健壮性清理（observer 节流 / unhandled rejection / config 缓存）[P1]
 - D-17 核实 options_ui.open_in_tab 被 WXT 丢弃的行为 [P3]
 - D-9 快捷键可配置 + options 快捷键清单 [P2]
 - D-10 popup 频道卡一键清除覆盖、跟随全局 [P2]
@@ -21,6 +20,7 @@
 - 
 
 ## Testing / QA
+- D-6 Content script 性能与健壮性清理（observer 节流 / unhandled rejection / config 缓存；dev + 独立审查通过，P2 已落实，119 例单测绿；待用户真机验收 TC1-TC4）（P1）
 - D-8 发布元数据修正（package.json 名称版本 / 占位链接 / Firefox gecko id；dev + 独立审查通过，含 pnpm-workspace.yaml 入库；待用户真机验收：TC2/TC3 与 AMO 校验）（P1）
 - D-7 移除不需要的 tabs 权限（dev + PM 评审 + QA 完成；待用户真机验收）（P1）
 - D-5 options lastVisit 显示本地时间（dev + PM 评审 + QA 完成；待用户真机验收）（P1）

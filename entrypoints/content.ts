@@ -1,11 +1,11 @@
 import {
-  CHANNELS_STORAGE_KEY,
-  GLOBAL_STORAGE_KEY,
   getConfig,
   updateConfig,
 } from '@/src/shared/config';
+import { createConfigCache } from '@/src/shared/config-cache';
 import { updateSavedStats } from '@/src/shared/stats';
 import { computeTimeSaved, getVideoIdFromUrl, sanitizeChannelName } from '@/src/shared/video';
+import { createFrameThrottle } from '@/src/shared/throttle';
 
 const URL_POLL_INTERVAL_MS = 800;
 const KEYBOARD_SPEED_STEP = 0.25;
@@ -158,7 +158,10 @@ const seekToPercent = (video: HTMLVideoElement, percent: number) => {
 
 const togglePlay = (video: HTMLVideoElement) => {
   if (video.paused) {
-    void video.play();
+    // Autoplay-policy rejections and nav-interruption AbortErrors are normal
+    // paths here (D-6): swallow so the console stays free of unhandled
+    // rejections.
+    void video.play().catch(() => {});
   } else {
     video.pause();
   }
@@ -169,10 +172,15 @@ const toggleFullscreen = (video: HTMLVideoElement) => {
     video.closest<HTMLElement>('.bpx-player-container, .bilibili-player-video') ?? video;
 
   if (document.fullscreenElement) {
-    void document.exitFullscreen();
+    // Rejects when the document lost focus or already left fullscreen;
+    // best-effort, nothing to recover.
+    void document.exitFullscreen().catch(() => {});
     return;
   }
-  void container.requestFullscreen?.();
+  // Rejects on missing user activation or unsupported containers; the
+  // player's own fullscreen button remains the fallback, so the error is not
+  // actionable here.
+  void container.requestFullscreen?.().catch(() => {});
 };
 
 const toggleCaptions = (video: HTMLVideoElement) => {
@@ -214,6 +222,17 @@ const findVideo = (): HTMLVideoElement | null => {
 export default defineContentScript({
   matches: ['*://*.bilibili.com/*'],
   main() {
+    // D-6: content-side config cache. The first read fills it; afterwards
+    // applySpeedForVideo / applyWidgetSettings / applyPreferredQuality are
+    // served from memory, and storage.onChanged is the ONLY invalidation
+    // source (see src/shared/config-cache.ts): sync-area config-key changes
+    // patch the cache and trigger a reconciliation reload, while local-area
+    // stats traffic is ignored. Writes issued here (channel override, visit
+    // records) get no local predictive update — chrome.storage fires
+    // onChanged in the writing context too, so every write converges through
+    // the same event without write/read races.
+    const configCache = createConfigCache(getConfig);
+
     let activeVideo: HTMLVideoElement | null = null;
     let programmaticRate: number | null = null;
     let programmaticRateTimer: number | null = null;
@@ -363,6 +382,9 @@ export default defineContentScript({
 
     const scheduleRatePersist = (channel: ChannelInfo, speed: number) => {
       runPendingRatePersist = () => {
+        // The queued write's internal read can reject (e.g. invalidated
+        // extension context after an update); persistence is best-effort and
+        // config.ts already warns on actual write failures, so swallow here.
         void updateConfigIfChanged((config) => {
           const existing = config.channels[channel.channelId];
           if (
@@ -386,7 +408,7 @@ export default defineContentScript({
               },
             },
           };
-        });
+        }).catch(() => {});
       };
       if (ratePersistTimer !== null) {
         window.clearTimeout(ratePersistTimer);
@@ -473,6 +495,9 @@ export default defineContentScript({
         return;
       }
 
+      // The queued write's internal read can reject (e.g. invalidated
+      // extension context); the visit is best-effort. Markers still advance
+      // so a dead context does not retry this write on every later event.
       await updateConfigIfChanged((config) => {
         const existing = config.channels[channel.channelId];
         if (existing) {
@@ -491,14 +516,16 @@ export default defineContentScript({
         }
 
         return config;
-      });
+      }).catch(() => {});
 
       lastChannelId = channel.channelId;
       lastVideoId = currentVideoId;
     };
 
     const applySpeedForVideo = async (video: HTMLVideoElement) => {
-      const config = await getConfig();
+      // D-6: read through the memory cache. loadedmetadata / play / emptied
+      // fire this on every media swap, so it must not re-read storage.sync.
+      const config = await configCache.read();
       const channel = getCurrentChannel();
       const channelOverride =
         channel?.channelId ? config.channels[channel.channelId] : undefined;
@@ -711,7 +738,7 @@ export default defineContentScript({
     };
 
     const applyWidgetSettings = async () => {
-      const config = await getConfig();
+      const config = await configCache.read();
       speedWidgetRoot.classList.toggle('smw--off', !config.global.showVideoWidget);
       speedWidgetRoot.classList.toggle(
         'smw--left',
@@ -747,7 +774,7 @@ export default defineContentScript({
         return;
       }
 
-      const config = await getConfig();
+      const config = await configCache.read();
       const preferred = config.global.preferredQuality;
       if (!preferred || preferred === 'auto') {
         return;
@@ -803,10 +830,13 @@ export default defineContentScript({
       const delta = timeSavedBuffer;
       timeSavedBuffer = 0;
       // D-1: stats persist to storage.local via the dedicated stats module,
-      // no longer through the sync config blob.
+      // no longer through the sync config blob. The module's internal read
+      // can reject (e.g. invalidated extension context); this flush also runs
+      // as a raw pause event listener, so the rejection is swallowed here to
+      // keep the console clean — best-effort, the next flush may succeed.
       await updateSavedStats((current) => ({
         timeSavedSeconds: current.timeSavedSeconds + delta,
-      }));
+      })).catch(() => {});
     };
 
     const scheduleTimeSaveFlush = () => {
@@ -914,8 +944,24 @@ export default defineContentScript({
       notifyPorts();
     };
 
+    // D-6: the observer watches the whole documentElement, so danmaku/comment
+    // churn would run syncManagedVideo (querySelector included) many times per
+    // second. Coalesce into at most one run per animation frame (foreground:
+    // ≤1 frame); the 100ms timer fallback covers stalled/background rAF and
+    // is best-effort there — Chrome intensive throttling can stretch it to
+    // roughly one run per minute, so background tabs converge eventually
+    // rather than in real time. Video attach/detach semantics are unchanged —
+    // only the call frequency is.
+    const scheduleObserverSync = createFrameThrottle({
+      run: syncManagedVideo,
+      requestFrame: (callback) => window.requestAnimationFrame(callback),
+      cancelFrame: (handle) => window.cancelAnimationFrame(handle),
+      setFallbackTimer: (callback, ms) => window.setTimeout(callback, ms),
+      clearFallbackTimer: (handle) => window.clearTimeout(handle),
+    });
+
     const observer = new MutationObserver(() => {
-      syncManagedVideo();
+      scheduleObserverSync.schedule();
     });
 
     const runtimeOnMessage = (() => {
@@ -1139,7 +1185,9 @@ export default defineContentScript({
           '.bilibili-player-video-btn-miniplayer',
         ]);
         if (!clicked && document.pictureInPictureElement !== activeVideo) {
-          void activeVideo.requestPictureInPicture?.();
+          // Rejects when PiP is disabled for the element or another element
+          // is already presenting; best-effort like the rest of the shortcuts.
+          void activeVideo.requestPictureInPicture?.().catch(() => {});
         }
         return;
       }
@@ -1214,14 +1262,14 @@ export default defineContentScript({
 
     if (storageOnChanged) {
       storageOnChanged.addListener((changes: Record<string, any>, areaName: string) => {
-        // Deliberately sync-only (D-1): local-area stats writes must never
-        // re-trigger the applySpeedForVideo/applyPreferredQuality chain.
-        // D-2: observe the two split keys; the legacy merged key is not
-        // watched (nothing writes it anymore after the first split write).
-        if (
-          areaName !== 'sync' ||
-          (!changes?.[GLOBAL_STORAGE_KEY] && !changes?.[CHANNELS_STORAGE_KEY])
-        ) {
+        // D-6: the config cache filters events itself — sync-area config-key
+        // changes patch the cache and start its reconciliation reload, while
+        // local-area stats writes (D-1) and unrelated sync keys return false
+        // and never reach the apply chain. Writes issued from this context
+        // also come back through this event (chrome.storage fires onChanged
+        // in the writing context too), so the cache converges on every
+        // writer without a local predictive update.
+        if (!configCache.handleStorageChanged(changes, areaName)) {
           return;
         }
         // No loop: our own writes fire this listener, applySpeedForVideo

@@ -164,8 +164,10 @@ export const capChannels = (
 
 // Partition-level merge helpers (D-2): mergeConfig assembles a full config
 // from a raw merged blob (import files, legacy storage), and getConfig reuses
-// the same per-section merging for the split keys' values.
-const mergeGlobalRaw = (raw: any): SpeedMasterConfig['global'] => {
+// the same per-section merging for the split keys' values. mergeGlobalRaw is
+// additionally exported for the content-side config cache (D-6), which applies
+// storage.onChanged patches with the exact same semantics as a fresh read.
+export const mergeGlobalRaw = (raw: any): SpeedMasterConfig['global'] => {
   const global = raw && typeof raw === 'object' ? raw : {};
   return {
     defaultSpeed:
