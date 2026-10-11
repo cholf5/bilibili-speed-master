@@ -377,3 +377,94 @@ describe('write failure handling', () => {
     ).resolves.toEqual({ timeSavedSeconds: 7 });
   });
 });
+
+describe('shouldCountPlaybackDelta (D-12 wall-clock proportion rule)', () => {
+  const count = (mediaDeltaS: number, wallDeltaMs: number, rate: number) =>
+    stats.shouldCountPlaybackDelta({ mediaDeltaS, wallDeltaMs, rate });
+
+  it('counts a normal foreground 2x tick', () => {
+    // timeupdate fires ~4x/s: ~0.25s wall, ~0.5s media at 2x.
+    expect(count(0.5, 250, 2)).toBe(true);
+  });
+
+  it('counts a throttled muted-background interval: 60s wall at 2x arrives as ~120s media in one tick (core D-12 fix)', () => {
+    // The old fixed 2s cutoff discarded exactly this case, losing all muted
+    // background playback time.
+    expect(count(120, 60000, 2)).toBe(true);
+  });
+
+  it('never counts 1x playback, even when throttled (rate <= 1)', () => {
+    expect(count(60, 60000, 1)).toBe(false);
+  });
+
+  it('never counts sub-1x playback (slow motion)', () => {
+    expect(count(5, 10000, 0.5)).toBe(false);
+  });
+
+  it('discards a forward seek: 30s media jump within 1s wall at 2x', () => {
+    // expected = 2s, tolerance ceiling = 2 * 1.5 + 0.5 = 3.5s << 30s.
+    expect(count(30, 1000, 2)).toBe(false);
+  });
+
+  it('discards a backward seek / replay', () => {
+    expect(count(-10, 1000, 2)).toBe(false);
+  });
+
+  it('discards pause / stall ticks (media did not advance)', () => {
+    expect(count(0, 10000, 2)).toBe(false);
+  });
+
+  it('counts media running BEHIND the wall expectation (buffering): the actual delta is what saves', () => {
+    // 10s wall at 2x but only 5s of media actually played (mid-interval
+    // stall): not a seek — count the real 5s (saving 2.5s), never invent the
+    // stalled time.
+    expect(count(5, 10000, 2)).toBe(true);
+  });
+
+  it('discards an interval crossing a rate DROP whose fast segment dominates (conservative undercount)', () => {
+    // 4x for 9s then 2x for 1s, tick judged with the current rate=2:
+    // media = 9*4 + 1*2 = 38s over 10s wall; expected = 20s, tolerance
+    // ceiling = 20 * 1.5 + 0.5 = 30.5s -> discarded. Direction-only headroom:
+    // speed-up crossings (media behind the new higher expectation) are always
+    // absorbed, a dominant fast segment before a drop can be misjudged —
+    // one interval undercounted, old fixed 2s cutoff discarded it too.
+    expect(count(38, 10000, 2)).toBe(false);
+  });
+
+  it('skips same-tick double dispatch (no wall-clock basis)', () => {
+    expect(count(0.2, 0, 2)).toBe(false);
+  });
+
+  it('skips the sentinel baseline tick (just attached / navigated)', () => {
+    expect(count(0, 0, 2)).toBe(false);
+  });
+
+  it('enforces the tolerance boundary: expected x 1.5 + 0.5s', () => {
+    // 1s wall at 2x -> expected 2s; allowed up to exactly 3.5s.
+    expect(count(3.5, 1000, 2)).toBe(true);
+    expect(count(3.51, 1000, 2)).toBe(false);
+  });
+
+  it('enforces the absolute fallback cap even when proportional', () => {
+    // 300s wall at 2x would legitimately produce 600s of media, but anything
+    // beyond the cap is discarded as a catastrophic anomaly.
+    expect(count(600, 300000, 2)).toBe(true);
+    expect(count(601, 300500, 2)).toBe(false);
+  });
+
+  it('still requires proportion after passing the cap boundary (rule order)', () => {
+    // media=600 passes the cap check (600 > 600 is false) but the interval is
+    // proportionally impossible (1s wall at 2x -> expected 2s, ceiling 3.5s),
+    // so the proportion rule discards it: the cap is a ceiling, not a pass.
+    expect(count(600, 1000, 2)).toBe(false);
+  });
+
+  it('defends against non-finite inputs', () => {
+    expect(count(NaN, 1000, 2)).toBe(false);
+    expect(count(1, NaN, 2)).toBe(false);
+    expect(count(1, 1000, NaN)).toBe(false);
+    expect(count(Infinity, 1000, 2)).toBe(false);
+    expect(count(1, Infinity, 2)).toBe(false);
+    expect(count(1, 1000, Infinity)).toBe(false);
+  });
+});

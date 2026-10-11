@@ -20,8 +20,8 @@ export const getVideoIdFromUrl = (url: string): string | null => {
 
 // Time saved by watching `delta` seconds of media at `rate`: the viewer skips
 // (delta * (rate - 1)) / rate seconds of wall-clock time. Only meaningful for
-// rate > 1 — handleTimeUpdate in content.ts filters delta <= 0, deltas beyond
-// TIME_UPDATE_MAX_DELTA_S, and rate <= 1 before calling this, so the function
-// itself implements nothing but the formula.
+// rate > 1 — handleTimeUpdate in content.ts filters non-positive deltas,
+// deltas out of proportion with elapsed wall time (D-12), and rate <= 1 before
+// calling this, so the function itself implements nothing but the formula.
 export const computeTimeSaved = (delta: number, rate: number): number =>
   (delta * (rate - 1)) / rate;

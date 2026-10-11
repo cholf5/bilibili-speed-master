@@ -3,7 +3,7 @@ import {
   updateConfig,
 } from '@/src/shared/config';
 import { createConfigCache } from '@/src/shared/config-cache';
-import { updateSavedStats } from '@/src/shared/stats';
+import { shouldCountPlaybackDelta, updateSavedStats } from '@/src/shared/stats';
 import { computeTimeSaved, getVideoIdFromUrl, sanitizeChannelName } from '@/src/shared/video';
 import { createFrameThrottle } from '@/src/shared/throttle';
 
@@ -27,7 +27,6 @@ const PLAYER_CONTAINER_SELECTOR = '.bpx-player-container, .bilibili-player';
 // changes in this window are treated as player init, not user intent.
 const PLAYER_INIT_GRACE_MS = 6000;
 const USER_INTENT_WINDOW_MS = 2000;
-const TIME_UPDATE_MAX_DELTA_S = 2;
 const QUALITY_APPLY_DELAY_MS = 1200;
 // SPA transitions swap the media seconds before the DOM's UP link updates, so
 // channel identity for /video/ pages is resolved authoritatively from the view
@@ -240,6 +239,10 @@ export default defineContentScript({
     let lastUrl = location.href;
     let urlPoller: number | null = null;
     let lastPlaybackTime = -1;
+    // D-12: monotonic wall timestamp (performance.now(), NOT Date.now() —
+    // system clock jumps must not poison the seek proportion check) paired
+    // with lastPlaybackTime; -1 shares the same "just attached" sentinel.
+    let lastPlaybackWallMs = -1;
     let lastPlaybackRate = 1;
     let timeSavedBuffer = 0;
     let timeSaveTimer: number | null = null;
@@ -853,29 +856,42 @@ export default defineContentScript({
       if (!activeVideo) {
         return;
       }
+      // D-12: pair the media timestamp with a monotonic wall timestamp so the
+      // counting rule can tell playback progress from seeks by proportion
+      // (media ≈ wall x rate) instead of a fixed cutoff.
+      const nowMs = performance.now();
       const currentTime = activeVideo.currentTime;
       // A negative lastPlaybackTime is the sentinel for "just attached or just
       // navigated": establish the baseline instead of counting a fake delta.
-      const delta = lastPlaybackTime < 0 ? 0 : currentTime - lastPlaybackTime;
+      const mediaDelta = lastPlaybackTime < 0 ? 0 : currentTime - lastPlaybackTime;
+      const wallDeltaMs = lastPlaybackWallMs < 0 ? 0 : nowMs - lastPlaybackWallMs;
       lastPlaybackTime = currentTime;
+      lastPlaybackWallMs = nowMs;
 
-      // Deltas larger than a couple of ticks are seeks or media transitions,
-      // not playback progress; only rates above 1x actually save time.
+      // D-12: count a tick only when the media delta is proportional to the
+      // wall-clock time that actually elapsed. The old fixed 2s cutoff
+      // discarded legitimate throttled background intervals (muted background
+      // tabs get event delivery stretched to ~1/minute, so one tick can
+      // carry ~wall x rate of media time). See shouldCountPlaybackDelta in
+      // src/shared/stats.ts for the tolerance and fallback rules.
       if (
-        delta <= 0 ||
-        delta > TIME_UPDATE_MAX_DELTA_S ||
-        lastPlaybackRate <= 1
+        !shouldCountPlaybackDelta({
+          mediaDeltaS: mediaDelta,
+          wallDeltaMs,
+          rate: lastPlaybackRate,
+        })
       ) {
         return;
       }
 
-      const saved = computeTimeSaved(delta, lastPlaybackRate);
+      const saved = computeTimeSaved(mediaDelta, lastPlaybackRate);
       timeSavedBuffer += saved;
       scheduleTimeSaveFlush();
     };
 
     const handleNavigationChange = () => {
       lastPlaybackTime = -1;
+      lastPlaybackWallMs = -1;
       syncManagedVideo();
       ensureSpeedWidget();
       if (activeVideo) {
@@ -902,6 +918,7 @@ export default defineContentScript({
       activeVideo = null;
       clearProgrammaticRate();
       lastPlaybackTime = -1;
+      lastPlaybackWallMs = -1;
       void flushTimeSaved();
       updateSpeedWidget();
       notifyPorts();
@@ -927,6 +944,7 @@ export default defineContentScript({
 
       activeVideo = video;
       lastPlaybackTime = -1;
+      lastPlaybackWallMs = -1;
       lastPlaybackRate = video.playbackRate;
       activeVideo.addEventListener('ratechange', handleRateChange);
       activeVideo.addEventListener('ratechange', notifyPorts);

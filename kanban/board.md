@@ -5,7 +5,6 @@
 - D-9 快捷键可配置 + options 快捷键清单 [P2]
 - D-10 popup 频道卡一键清除覆盖、跟随全局 [P2]
 - D-11 options 频道表格搜索 [P2]
-- D-12 后台播放统计口径验证与修正 [P2]
 - D-13 直播页支持评估（产品决策）[P3]
 - D-14 content.ts 拆分模块 + 共享常量收敛 [P3]
 - D-16 可访问性修正（空格键豁免 + widget aria-label i18n）[P2]
@@ -20,6 +19,7 @@
 - 
 
 ## Testing / QA
+- D-12 后台播放统计口径验证与修正（2s 固定阈值改墙钟比例口径 shouldCountPlaybackDelta；dev + 独立审查通过，P1 文档修订+P2 已落实，134 例单测绿；实测矩阵 TC1/TC2 待用户真机验收）（P2）
 - D-6 Content script 性能与健壮性清理（observer 节流 / unhandled rejection / config 缓存；dev + 独立审查通过，P2 已落实，119 例单测绿；待用户真机验收 TC1-TC4）（P1）
 - D-8 发布元数据修正（package.json 名称版本 / 占位链接 / Firefox gecko id；dev + 独立审查通过，含 pnpm-workspace.yaml 入库；待用户真机验收：TC2/TC3 与 AMO 校验）（P1）
 - D-7 移除不需要的 tabs 权限（dev + PM 评审 + QA 完成；待用户真机验收）（P1）

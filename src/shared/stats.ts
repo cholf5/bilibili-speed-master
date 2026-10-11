@@ -1,9 +1,98 @@
-// Saved-time statistics storage (D-1): stats are device-local data with no
-// cross-device sync value, so they live in chrome.storage.local under their
-// own key instead of riding the sync config blob, whose hard
-// MAX_WRITE_OPERATIONS_PER_HOUR quota the previous ~3s flush used to exhaust.
+// Saved-time statistics (D-1 storage, D-12 counting rule): stats are
+// device-local data with no cross-device sync value, so they live in
+// chrome.storage.local under their own key instead of riding the sync config
+// blob, whose hard MAX_WRITE_OPERATIONS_PER_HOUR quota the previous ~3s flush
+// used to exhaust.
 
 import { getConfig, removeLegacyConfigKeyOnce } from '@/src/shared/config';
+
+// ---- D-12: wall-clock proportion check -------------------------------------
+//
+// handleTimeUpdate used to discard any media delta above a fixed 2s
+// (TIME_UPDATE_MAX_DELTA_S) as a "seek". That is a suspected failure mode for
+// background tabs: Chrome's documented intensive throttling covers timers in
+// muted background tabs (roughly once per minute); `timeupdate` is derived
+// from the media pipeline rather than a timer, so whether its dispatch
+// frequency is reduced there is UNVERIFIED. If it is, a legitimate 2x
+// playback stretch arrives as a single timeupdate carrying ~120s of media
+// delta and the old cutoff discarded it wholesale. Either way, whether a
+// delta is a seek is not a question of absolute size but of proportion:
+// between two ticks media time may only advance by about (wall time x rate).
+
+// A jump beyond the proportion expectation is tolerated when it is small: the
+// 50% relative headroom absorbs event-dispatch jitter, timestamp rounding,
+// and mid-interval rate changes — but only in the speed-up direction, where
+// the media ends up BEHIND the expectation computed with the new (higher)
+// rate. Crossing DOWN to a lower rate can leave the fast segment's media
+// ahead of the new rate's expectation and get the tick discarded (e.g. 4x
+// for 9s then 2x for 1s, judged with rate=2: media 38 > 30.5) — a
+// conservative undercount of one interval, while the old fixed 2s cutoff
+// discarded everything over 2s outright, so the tolerance is still a net
+// recovery. The 0.5s absolute floor keeps short foreground ticks (timeupdate
+// fires ~4x/s) safe from noise. Both are deliberately loose: over-counting a
+// rare anomaly costs seconds of accuracy, while a false discard loses the
+// whole (possibly minutes-long) interval.
+export const SEEK_TOLERANCE_RATIO = 1.5;
+export const SEEK_TOLERANCE_FLOOR_S = 0.5;
+
+// Absolute fallback, replacing the old 2s threshold as a sanity ceiling only.
+// It must sit far ABOVE what documented throttling can legitimately produce
+// (one tick/minute at 4x = 240s of media time) so it never clips the real
+// background case; its only job is to bound catastrophic pollution
+// (monotonic-clock anomalies, runaway media elements).
+export const MEDIA_DELTA_HARD_CAP_S = 600;
+
+// Decides whether one timeupdate interval counts as playback progress for the
+// time-saved statistic. `mediaDeltaS` is the currentTime advance since the
+// previous tick, `wallDeltaMs` the monotonic wall-clock advance
+// (performance.now()) over the same interval, `rate` the playback rate in
+// effect. See the block comment above for the rationale of each rule.
+export const shouldCountPlaybackDelta = ({
+  mediaDeltaS,
+  wallDeltaMs,
+  rate,
+}: {
+  mediaDeltaS: number;
+  wallDeltaMs: number;
+  rate: number;
+}): boolean => {
+  // Defensive: a non-finite timestamp (media element quirks) must never be
+  // counted — NaN comparisons below would silently pass every branch.
+  if (
+    !Number.isFinite(mediaDeltaS) ||
+    !Number.isFinite(wallDeltaMs) ||
+    !Number.isFinite(rate)
+  ) {
+    return false;
+  }
+  // Only rates above 1x save time (existing semantics, unchanged).
+  if (rate <= 1) {
+    return false;
+  }
+  // Non-positive media deltas are rewinds, replays, pause ticks, or the
+  // "just attached" baseline tick — no progress, never counted.
+  if (mediaDeltaS <= 0) {
+    return false;
+  }
+  // No wall-clock basis (same-tick double dispatch, jitter): proportion
+  // cannot be established, so the tick is dropped. The caller has already
+  // advanced its stored timestamps, so this tick's media advance (at most
+  // one tick's worth) is lost rather than merged into the next interval —
+  // a conservative undercount, harmless at that scale.
+  if (wallDeltaMs <= 0) {
+    return false;
+  }
+  // Absolute ceiling (see constant comment): discard regardless of proportion.
+  if (mediaDeltaS > MEDIA_DELTA_HARD_CAP_S) {
+    return false;
+  }
+  // Seek / anomaly test. Media running BEHIND the expectation (buffering,
+  // stalls) still counts — the actual media delta is what gets saved, so a
+  // stall simply saves less and no time is ever invented. Running AHEAD of
+  // wall x rate beyond the tolerance means the jump was not playback.
+  const expectedS = (wallDeltaMs / 1000) * rate;
+  return mediaDeltaS <= expectedS * SEEK_TOLERANCE_RATIO + SEEK_TOLERANCE_FLOOR_S;
+};
 
 export const STATS_STORAGE_KEY = 'bilibiliSpeedMasterStats';
 
