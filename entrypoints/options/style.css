@@ -1,31 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import '../shared-ui.css';
 
 :root {
-  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
+  font-family: 'Space Grotesk', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei',
+    sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #f5f7ff;
-  background-color: #151515;
+  color: var(--sm-text);
+  background-color: var(--sm-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 body {
   margin: 0;
-  background: #1e1f22;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
+  background: var(--sm-bg);
 }
 
 #root {
