@@ -8,6 +8,11 @@ import { defineConfig } from 'wxt';
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
+  zip: {
+    // Local design assets (icon candidates, preview pages) must not leak into
+    // the AMO source submission.
+    excludeSources: ['design/**'],
+  },
   // D-8: manifest is a function so Firefox-only fields (gecko id for AMO)
   // never leak into the Chrome build.
   manifest: ({ browser }) => ({
@@ -28,6 +33,8 @@ export default defineConfig({
             gecko: {
               id: '{B079DA6F-03A0-4B61-82D3-89260E308CB6}',
               strict_min_version: '109.0',
+              // AMO data-collection policy: this extension gathers nothing.
+              data_collection_permissions: { required: ['none'] },
             },
           },
         }
