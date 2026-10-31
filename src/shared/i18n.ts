@@ -36,6 +36,13 @@ const en: Messages = {
   shortcutsRestoreDefaults: 'Restore Defaults',
   shortcutsRestoreConfirm: 'Restore all shortcuts to their defaults?',
   shortcutsRecordHint: 'Press a key… (Esc to cancel)',
+  shortcutsGroupPlayback: 'Playback',
+  shortcutsGroupSeeking: 'Seeking',
+  shortcutsGroupVolume: 'Volume',
+  shortcutsGroupSpeed: 'Speed',
+  shortcutsGroupView: 'Player & navigation',
+  shortcutsGroupPercent: 'Jump to percent',
+  shortcutsGroupMedia: 'Media keys',
   shortcutsConflictWith: 'Already used by "{action}"',
   shortcutsSwap: 'Swap',
   shortcutsCancel: 'Cancel',
@@ -70,6 +77,7 @@ const en: Messages = {
   openSourceRepo: 'Source Code',
   openSourceFeedback: 'Feedback & Issues',
   openSourceLicense: 'License',
+  channelDeleteConfirm: 'Remove the speed override for this channel?',
 };
 
 const zhCN: Messages = {
@@ -103,6 +111,13 @@ const zhCN: Messages = {
   shortcutsRestoreDefaults: '恢复默认',
   shortcutsRestoreConfirm: '确定将全部快捷键恢复为默认吗？',
   shortcutsRecordHint: '请按下新的按键…（按 Esc 取消）',
+  shortcutsGroupPlayback: '播放',
+  shortcutsGroupSeeking: '进度跳转',
+  shortcutsGroupVolume: '音量',
+  shortcutsGroupSpeed: '倍速',
+  shortcutsGroupView: '播放器与页面',
+  shortcutsGroupPercent: '跳转到指定进度',
+  shortcutsGroupMedia: '媒体键',
   shortcutsConflictWith: '与「{action}」冲突',
   shortcutsSwap: '交换',
   shortcutsCancel: '取消',
@@ -137,6 +152,7 @@ const zhCN: Messages = {
   openSourceRepo: '源代码',
   openSourceFeedback: '反馈与问题',
   openSourceLicense: '许可证',
+  channelDeleteConfirm: '确定移除该频道的倍速覆盖设置吗？',
 };
 
 const zhTW: Messages = {
@@ -170,6 +186,13 @@ const zhTW: Messages = {
   shortcutsRestoreDefaults: '還原預設',
   shortcutsRestoreConfirm: '確定要將全部快捷鍵還原為預設嗎？',
   shortcutsRecordHint: '請按下新的按鍵…（按 Esc 取消）',
+  shortcutsGroupPlayback: '播放',
+  shortcutsGroupSeeking: '進度跳轉',
+  shortcutsGroupVolume: '音量',
+  shortcutsGroupSpeed: '倍速',
+  shortcutsGroupView: '播放器與頁面',
+  shortcutsGroupPercent: '跳至指定進度',
+  shortcutsGroupMedia: '媒體鍵',
   shortcutsConflictWith: '與「{action}」衝突',
   shortcutsSwap: '交換',
   shortcutsCancel: '取消',
@@ -204,6 +227,7 @@ const zhTW: Messages = {
   openSourceRepo: '原始碼',
   openSourceFeedback: '回報與問題',
   openSourceLicense: '授權條款',
+  channelDeleteConfirm: '確定要移除該頻道的倍速覆寫設定嗎？',
 };
 
 const ja: Messages = {
@@ -237,6 +261,13 @@ const ja: Messages = {
   shortcutsRestoreDefaults: 'デフォルトに戻す',
   shortcutsRestoreConfirm: 'すべてのショートカットをデフォルトに戻しますか？',
   shortcutsRecordHint: '新しいキーを押してください…（Esc でキャンセル）',
+  shortcutsGroupPlayback: '再生',
+  shortcutsGroupSeeking: 'シーク',
+  shortcutsGroupVolume: '音量',
+  shortcutsGroupSpeed: '速度',
+  shortcutsGroupView: 'プレーヤーとページ',
+  shortcutsGroupPercent: '指定位置へ移動',
+  shortcutsGroupMedia: 'メディアキー',
   shortcutsConflictWith: '「{action}」と競合しています',
   shortcutsSwap: '入れ替える',
   shortcutsCancel: 'キャンセル',
@@ -271,6 +302,7 @@ const ja: Messages = {
   openSourceRepo: 'ソースコード',
   openSourceFeedback: 'フィードバックと不具合報告',
   openSourceLicense: 'ライセンス',
+  channelDeleteConfirm: 'このチャンネルの速度設定を削除しますか？',
 };
 
 const ko: Messages = {
@@ -304,6 +336,13 @@ const ko: Messages = {
   shortcutsRestoreDefaults: '기본값으로 복원',
   shortcutsRestoreConfirm: '모든 단축키를 기본값으로 복원할까요?',
   shortcutsRecordHint: '새 키를 누르세요… (Esc로 취소)',
+  shortcutsGroupPlayback: '재생',
+  shortcutsGroupSeeking: '구간 이동',
+  shortcutsGroupVolume: '음량',
+  shortcutsGroupSpeed: '속도',
+  shortcutsGroupView: '플레이어 및 화면',
+  shortcutsGroupPercent: '지정 지점으로 이동',
+  shortcutsGroupMedia: '미디어 키',
   shortcutsConflictWith: '"{action}"와(과) 충돌합니다',
   shortcutsSwap: '교체',
   shortcutsCancel: '취소',
@@ -338,6 +377,7 @@ const ko: Messages = {
   openSourceRepo: '소스 코드',
   openSourceFeedback: '피드백 및 버그 신고',
   openSourceLicense: '라이선스',
+  channelDeleteConfirm: '이 채널의 속도 설정을 삭제할까요?',
 };
 
 const es: Messages = {
@@ -371,6 +411,13 @@ const es: Messages = {
   shortcutsRestoreDefaults: 'Restaurar valores predeterminados',
   shortcutsRestoreConfirm: '¿Restaurar todos los atajos a sus valores predeterminados?',
   shortcutsRecordHint: 'Pulsa una tecla… (Esc para cancelar)',
+  shortcutsGroupPlayback: 'Reproducción',
+  shortcutsGroupSeeking: 'Navegación',
+  shortcutsGroupVolume: 'Volumen',
+  shortcutsGroupSpeed: 'Velocidad',
+  shortcutsGroupView: 'Reproductor y página',
+  shortcutsGroupPercent: 'Saltar a un porcentaje',
+  shortcutsGroupMedia: 'Teclas multimedia',
   shortcutsConflictWith: 'Ya lo usa «{action}»',
   shortcutsSwap: 'Intercambiar',
   shortcutsCancel: 'Cancelar',
@@ -405,6 +452,7 @@ const es: Messages = {
   openSourceRepo: 'Código fuente',
   openSourceFeedback: 'Comentarios y problemas',
   openSourceLicense: 'Licencia',
+  channelDeleteConfirm: '¿Quitar la velocidad específica de este canal?',
 };
 
 const fr: Messages = {
@@ -438,6 +486,13 @@ const fr: Messages = {
   shortcutsRestoreDefaults: 'Rétablir les valeurs par défaut',
   shortcutsRestoreConfirm: 'Rétablir tous les raccourcis à leurs valeurs par défaut ?',
   shortcutsRecordHint: 'Appuyez sur une touche… (Échap pour annuler)',
+  shortcutsGroupPlayback: 'Lecture',
+  shortcutsGroupSeeking: 'Déplacements',
+  shortcutsGroupVolume: 'Volume',
+  shortcutsGroupSpeed: 'Vitesse',
+  shortcutsGroupView: 'Lecteur et navigation',
+  shortcutsGroupPercent: 'Aller à un pourcentage',
+  shortcutsGroupMedia: 'Touches média',
   shortcutsConflictWith: 'Déjà utilisé par « {action} »',
   shortcutsSwap: 'Échanger',
   shortcutsCancel: 'Annuler',
@@ -472,6 +527,7 @@ const fr: Messages = {
   openSourceRepo: 'Code source',
   openSourceFeedback: 'Commentaires et problèmes',
   openSourceLicense: 'Licence',
+  channelDeleteConfirm: 'Supprimer la vitesse spécifique de cette chaîne ?',
 };
 
 const de: Messages = {
@@ -505,6 +561,13 @@ const de: Messages = {
   shortcutsRestoreDefaults: 'Standardeinstellungen wiederherstellen',
   shortcutsRestoreConfirm: 'Alle Tastenkürzel auf die Standardeinstellungen zurücksetzen?',
   shortcutsRecordHint: 'Taste drücken… (Esc zum Abbrechen)',
+  shortcutsGroupPlayback: 'Wiedergabe',
+  shortcutsGroupSeeking: 'Navigation',
+  shortcutsGroupVolume: 'Lautstärke',
+  shortcutsGroupSpeed: 'Geschwindigkeit',
+  shortcutsGroupView: 'Player & Seitennavigation',
+  shortcutsGroupPercent: 'Zu Prozentstelle springen',
+  shortcutsGroupMedia: 'Medientasten',
   shortcutsConflictWith: 'Wird bereits von „{action}“ verwendet',
   shortcutsSwap: 'Tauschen',
   shortcutsCancel: 'Abbrechen',
@@ -539,6 +602,7 @@ const de: Messages = {
   openSourceRepo: 'Quellcode',
   openSourceFeedback: 'Feedback und Probleme',
   openSourceLicense: 'Lizenz',
+  channelDeleteConfirm: 'Die Geschwindigkeitseinstellung für diesen Kanal entfernen?',
 };
 
 const ru: Messages = {
@@ -572,6 +636,13 @@ const ru: Messages = {
   shortcutsRestoreDefaults: 'Восстановить значения по умолчанию',
   shortcutsRestoreConfirm: 'Восстановить все горячие клавиши по умолчанию?',
   shortcutsRecordHint: 'Нажмите клавишу… (Esc — отмена)',
+  shortcutsGroupPlayback: 'Воспроизведение',
+  shortcutsGroupSeeking: 'Перемотка',
+  shortcutsGroupVolume: 'Громкость',
+  shortcutsGroupSpeed: 'Скорость',
+  shortcutsGroupView: 'Плеер и навигация',
+  shortcutsGroupPercent: 'Переход к проценту',
+  shortcutsGroupMedia: 'Медиаклавиши',
   shortcutsConflictWith: 'Уже используется «{action}»',
   shortcutsSwap: 'Поменять',
   shortcutsCancel: 'Отмена',
@@ -606,6 +677,7 @@ const ru: Messages = {
   openSourceRepo: 'Исходный код',
   openSourceFeedback: 'Отзывы и проблемы',
   openSourceLicense: 'Лицензия',
+  channelDeleteConfirm: 'Убрать индивидуальную скорость для этого канала?',
 };
 
 const ptBR: Messages = {
@@ -639,6 +711,13 @@ const ptBR: Messages = {
   shortcutsRestoreDefaults: 'Restaurar padrões',
   shortcutsRestoreConfirm: 'Restaurar todos os atalhos para os padrões?',
   shortcutsRecordHint: 'Pressione uma tecla… (Esc para cancelar)',
+  shortcutsGroupPlayback: 'Reprodução',
+  shortcutsGroupSeeking: 'Navegação',
+  shortcutsGroupVolume: 'Volume',
+  shortcutsGroupSpeed: 'Velocidade',
+  shortcutsGroupView: 'Player e página',
+  shortcutsGroupPercent: 'Pular para porcentagem',
+  shortcutsGroupMedia: 'Teclas de mídia',
   shortcutsConflictWith: 'Já usado por "{action}"',
   shortcutsSwap: 'Trocar',
   shortcutsCancel: 'Cancelar',
@@ -673,6 +752,7 @@ const ptBR: Messages = {
   openSourceRepo: 'Código-fonte',
   openSourceFeedback: 'Feedback e problemas',
   openSourceLicense: 'Licença',
+  channelDeleteConfirm: 'Remover a velocidade específica deste canal?',
 };
 
 const it: Messages = {
@@ -706,6 +786,13 @@ const it: Messages = {
   shortcutsRestoreDefaults: 'Ripristina predefiniti',
   shortcutsRestoreConfirm: 'Ripristinare tutti i tasti rapidi ai valori predefiniti?',
   shortcutsRecordHint: 'Premi un tasto… (Esc per annullare)',
+  shortcutsGroupPlayback: 'Riproduzione',
+  shortcutsGroupSeeking: 'Avanzamento',
+  shortcutsGroupVolume: 'Volume',
+  shortcutsGroupSpeed: 'Velocità',
+  shortcutsGroupView: 'Player e pagina',
+  shortcutsGroupPercent: 'Vai a una percentuale',
+  shortcutsGroupMedia: 'Tasti multimediali',
   shortcutsConflictWith: 'Già usato da "{action}"',
   shortcutsSwap: 'Scambia',
   shortcutsCancel: 'Annulla',
@@ -740,6 +827,7 @@ const it: Messages = {
   openSourceRepo: 'Codice sorgente',
   openSourceFeedback: 'Feedback e problemi',
   openSourceLicense: 'Licenza',
+  channelDeleteConfirm: 'Rimuovere la velocità personalizzata di questo canale?',
 };
 
 const tr: Messages = {
@@ -773,6 +861,13 @@ const tr: Messages = {
   shortcutsRestoreDefaults: 'Varsayılanlara dön',
   shortcutsRestoreConfirm: 'Tüm klavye kısayolları varsayılanlara döndürülsün mü?',
   shortcutsRecordHint: 'Yeni bir tuşa basın… (İptal için Esc)',
+  shortcutsGroupPlayback: 'Oynatma',
+  shortcutsGroupSeeking: 'Konum atlama',
+  shortcutsGroupVolume: 'Ses',
+  shortcutsGroupSpeed: 'Hız',
+  shortcutsGroupView: 'Oynatıcı ve sayfa',
+  shortcutsGroupPercent: 'Yüzdeye git',
+  shortcutsGroupMedia: 'Medya tuşları',
   shortcutsConflictWith: '"{action}" tarafından zaten kullanılıyor',
   shortcutsSwap: 'Takas et',
   shortcutsCancel: 'İptal',
@@ -807,6 +902,7 @@ const tr: Messages = {
   openSourceRepo: 'Kaynak kodu',
   openSourceFeedback: 'Geri bildirim ve sorunlar',
   openSourceLicense: 'Lisans',
+  channelDeleteConfirm: 'Bu kanalın hız ayarı kaldırılsın mı?',
 };
 
 const vi: Messages = {
@@ -840,6 +936,13 @@ const vi: Messages = {
   shortcutsRestoreDefaults: 'Khôi phục mặc định',
   shortcutsRestoreConfirm: 'Khôi phục tất cả phím tắt về mặc định?',
   shortcutsRecordHint: 'Nhấn một phím… (Esc để hủy)',
+  shortcutsGroupPlayback: 'Phát',
+  shortcutsGroupSeeking: 'Tua',
+  shortcutsGroupVolume: 'Âm lượng',
+  shortcutsGroupSpeed: 'Tốc độ',
+  shortcutsGroupView: 'Trình phát và điều hướng',
+  shortcutsGroupPercent: 'Tới vị trí theo phần trăm',
+  shortcutsGroupMedia: 'Phím media',
   shortcutsConflictWith: 'Đã được "{action}" sử dụng',
   shortcutsSwap: 'Hoán đổi',
   shortcutsCancel: 'Hủy',
@@ -874,6 +977,7 @@ const vi: Messages = {
   openSourceRepo: 'Mã nguồn',
   openSourceFeedback: 'Phản hồi và vấn đề',
   openSourceLicense: 'Giấy phép',
+  channelDeleteConfirm: 'Xóa cài đặt tốc độ của kênh này?',
 };
 
 const th: Messages = {
@@ -907,6 +1011,13 @@ const th: Messages = {
   shortcutsRestoreDefaults: 'คืนค่าเริ่มต้น',
   shortcutsRestoreConfirm: 'คืนค่าแป้นพิมพ์ลัดทั้งหมดเป็นค่าเริ่มต้นหรือไม่',
   shortcutsRecordHint: 'กดแป้นใหม่… (กด Esc เพื่อยกเลิก)',
+  shortcutsGroupPlayback: 'การเล่น',
+  shortcutsGroupSeeking: 'การเลื่อนตำแหน่ง',
+  shortcutsGroupVolume: 'ระดับเสียง',
+  shortcutsGroupSpeed: 'ความเร็ว',
+  shortcutsGroupView: 'เครื่องเล่นและการนำทาง',
+  shortcutsGroupPercent: 'ไปที่ตำแหน่งเปอร์เซ็นต์',
+  shortcutsGroupMedia: 'ปุ่มสื่อ',
   shortcutsConflictWith: 'ถูกใช้โดย "{action}" แล้ว',
   shortcutsSwap: 'สลับ',
   shortcutsCancel: 'ยกเลิก',
@@ -941,6 +1052,7 @@ const th: Messages = {
   openSourceRepo: 'ซอร์สโค้ด',
   openSourceFeedback: 'ข้อเสนอแนะและปัญหา',
   openSourceLicense: 'สัญญาอนุญาต',
+  channelDeleteConfirm: 'ลบการตั้งค่าความเร็วของช่องนี้?',
 };
 
 const id: Messages = {
@@ -974,6 +1086,13 @@ const id: Messages = {
   shortcutsRestoreDefaults: 'Kembalikan bawaan',
   shortcutsRestoreConfirm: 'Pulihkan semua pintasan keyboard ke bawaan?',
   shortcutsRecordHint: 'Tekan tombol baru… (Esc untuk membatalkan)',
+  shortcutsGroupPlayback: 'Pemutaran',
+  shortcutsGroupSeeking: 'Pemindahan posisi',
+  shortcutsGroupVolume: 'Volume',
+  shortcutsGroupSpeed: 'Kecepatan',
+  shortcutsGroupView: 'Pemutar dan navigasi',
+  shortcutsGroupPercent: 'Lompat ke persentase',
+  shortcutsGroupMedia: 'Tombol media',
   shortcutsConflictWith: 'Sudah digunakan oleh "{action}"',
   shortcutsSwap: 'Tukar',
   shortcutsCancel: 'Batal',
@@ -1008,6 +1127,7 @@ const id: Messages = {
   openSourceRepo: 'Kode sumber',
   openSourceFeedback: 'Umpan balik dan masalah',
   openSourceLicense: 'Lisensi',
+  channelDeleteConfirm: 'Hapus pengaturan kecepatan saluran ini?',
 };
 
 const ar: Messages = {
@@ -1041,6 +1161,13 @@ const ar: Messages = {
   shortcutsRestoreDefaults: 'استعادة الافتراضيات',
   shortcutsRestoreConfirm: 'هل تريد استعادة جميع الاختصارات إلى الافتراضيات؟',
   shortcutsRecordHint: 'اضغط مفتاحًا… (Esc للإلغاء)',
+  shortcutsGroupPlayback: 'التشغيل',
+  shortcutsGroupSeeking: 'التنقل في الفيديو',
+  shortcutsGroupVolume: 'الصوت',
+  shortcutsGroupSpeed: 'السرعة',
+  shortcutsGroupView: 'المشغل والتنقل',
+  shortcutsGroupPercent: 'الانتقال إلى نسبة مئوية',
+  shortcutsGroupMedia: 'مفاتيح الوسائط',
   shortcutsConflictWith: 'يُستخدم بالفعل بواسطة "{action}"',
   shortcutsSwap: 'تبديل',
   shortcutsCancel: 'إلغاء',
@@ -1075,6 +1202,7 @@ const ar: Messages = {
   openSourceRepo: 'الشيفرة المصدرية',
   openSourceFeedback: 'الملاحظات والمشكلات',
   openSourceLicense: 'الترخيص',
+  channelDeleteConfirm: 'إزالة إعداد السرعة الخاص بهذه القناة؟',
 };
 
 const hi: Messages = {
@@ -1108,6 +1236,13 @@ const hi: Messages = {
   shortcutsRestoreDefaults: 'डिफ़ॉल्ट पर लौटें',
   shortcutsRestoreConfirm: 'सभी शॉर्टकट को डिफ़ॉल्ट पर पुनर्स्थापित करें?',
   shortcutsRecordHint: 'नई कुंजी दबाएँ… (रद्द करने के लिए Esc)',
+  shortcutsGroupPlayback: 'प्लेबैक',
+  shortcutsGroupSeeking: 'सीक',
+  shortcutsGroupVolume: 'वॉल्यूम',
+  shortcutsGroupSpeed: 'गति',
+  shortcutsGroupView: 'प्लेयर और नेविगेशन',
+  shortcutsGroupPercent: 'प्रतिशत पर जाएँ',
+  shortcutsGroupMedia: 'मीडिया कुंजियाँ',
   shortcutsConflictWith: '"{action}" द्वारा पहले से उपयोग में है',
   shortcutsSwap: 'अदला-बदली करें',
   shortcutsCancel: 'रद्द करें',
@@ -1142,6 +1277,7 @@ const hi: Messages = {
   openSourceRepo: 'सोर्स कोड',
   openSourceFeedback: 'प्रतिक्रिया और समस्याएँ',
   openSourceLicense: 'लाइसेंस',
+  channelDeleteConfirm: 'इस चैनल की गति सेटिंग हटाएँ?',
 };
 
 const pl: Messages = {
@@ -1175,6 +1311,13 @@ const pl: Messages = {
   shortcutsRestoreDefaults: 'Przywróć domyślne',
   shortcutsRestoreConfirm: 'Przywrócić wszystkie skróty do wartości domyślnych?',
   shortcutsRecordHint: 'Naciśnij nowy klawisz… (Esc anuluje)',
+  shortcutsGroupPlayback: 'Odtwarzanie',
+  shortcutsGroupSeeking: 'Przewijanie',
+  shortcutsGroupVolume: 'Głośność',
+  shortcutsGroupSpeed: 'Prędkość',
+  shortcutsGroupView: 'Odtwarzacz i nawigacja',
+  shortcutsGroupPercent: 'Skok do procenta',
+  shortcutsGroupMedia: 'Klawisze multimedialne',
   shortcutsConflictWith: 'Już używany przez „{action}”',
   shortcutsSwap: 'Zamień',
   shortcutsCancel: 'Anuluj',
@@ -1209,6 +1352,7 @@ const pl: Messages = {
   openSourceRepo: 'Kod źródłowy',
   openSourceFeedback: 'Opinie i problemy',
   openSourceLicense: 'Licencja',
+  channelDeleteConfirm: 'Usunąć ustawienie prędkości dla tego kanału?',
 };
 
 type Locale =

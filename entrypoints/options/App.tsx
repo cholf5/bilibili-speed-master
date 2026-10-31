@@ -15,6 +15,7 @@ import {
 } from '@/src/shared/config';
 import { STATS_STORAGE_KEY, getSavedStats, updateSavedStats } from '@/src/shared/stats';
 import { t } from '@/src/shared/i18n';
+import { RATE_URL } from '@/src/shared/about';
 import {
   SHORTCUT_ACTION_ORDER,
   bindingEquals,
@@ -136,6 +137,80 @@ const shortcutActionName = (id: ShortcutActionId): string => {
   }
   return t(SHORTCUT_ACTION_NAME_KEYS[id]);
 };
+
+// Display grouping for the shortcuts list — the sections the keymap was
+// actually designed around (YouTube's). Pure structure for scanning; the
+// order inside each group follows SHORTCUT_ACTION_ORDER, and matching/
+// execution still iterate that flat order.
+type ShortcutGroupTitleKey =
+  | 'shortcutsGroupPlayback'
+  | 'shortcutsGroupSeeking'
+  | 'shortcutsGroupVolume'
+  | 'shortcutsGroupSpeed'
+  | 'shortcutsGroupView'
+  | 'shortcutsGroupPercent'
+  | 'shortcutsGroupMedia';
+
+const SHORTCUT_GROUPS: ReadonlyArray<{
+  titleKey: ShortcutGroupTitleKey;
+  actionIds: ReadonlyArray<ShortcutActionId>;
+}> = [
+  {
+    titleKey: 'shortcutsGroupPlayback',
+    actionIds: ['togglePlay', 'togglePlaySpace', 'toggleMute'],
+  },
+  {
+    titleKey: 'shortcutsGroupSeeking',
+    actionIds: [
+      'seekBackwardLarge',
+      'seekForwardLarge',
+      'seekBackwardSmall',
+      'seekForwardSmall',
+      'seekToStart',
+      'seekToEnd',
+      'stepForward',
+      'stepBackward',
+    ],
+  },
+  {
+    titleKey: 'shortcutsGroupVolume',
+    actionIds: ['volumeUp', 'volumeDown'],
+  },
+  {
+    titleKey: 'shortcutsGroupSpeed',
+    actionIds: ['speedUp', 'slowDown'],
+  },
+  {
+    titleKey: 'shortcutsGroupView',
+    actionIds: [
+      'toggleFullscreen',
+      'toggleCaptions',
+      'toggleMiniPlayer',
+      'nextVideo',
+      'prevVideo',
+      'focusSearch',
+    ],
+  },
+  {
+    titleKey: 'shortcutsGroupPercent',
+    actionIds: [
+      'seekToPercent0',
+      'seekToPercent1',
+      'seekToPercent2',
+      'seekToPercent3',
+      'seekToPercent4',
+      'seekToPercent5',
+      'seekToPercent6',
+      'seekToPercent7',
+      'seekToPercent8',
+      'seekToPercent9',
+    ],
+  },
+  {
+    titleKey: 'shortcutsGroupMedia',
+    actionIds: ['mediaPlayPause', 'mediaStop', 'mediaTrackNext'],
+  },
+];
 
 function App() {
   const [config, setConfig] = useState<SpeedMasterConfig | null>(null);
@@ -468,6 +543,12 @@ function App() {
   // the single updateConfig writer. The reference-equality short-circuit skips
   // the storage write when there is nothing to remove.
   const deleteChannel = async (channelId: string) => {
+    // Same confirm discipline as restore-defaults and import: a stored
+    // override is user data, and the delete button sits one mis-click away
+    // inside a hover row.
+    if (!window.confirm(t('channelDeleteConfirm'))) {
+      return;
+    }
     const next = await updateConfig((current) => {
       const channels = removeChannelOverride(current.channels, channelId);
       if (channels === current.channels) {
@@ -519,12 +600,16 @@ function App() {
           </div>
         </div>
         <div className="header__actions">
-          <div className="rating">
-            <span>{t('rateMe')}:</span>
-            <span className="rating__stars" aria-hidden="true">
-              &#9733;&#9733;&#9733;&#9733;&#9733;
-            </span>
-          </div>
+          {/* Rendered only once a store listing exists (RATE_URL in
+              src/shared/about.ts); a dead control helps no one. */}
+          {RATE_URL && (
+            <div className="rating">
+              <a href={RATE_URL} target="_blank" rel="noreferrer">
+                <span className="rating__star" aria-hidden="true">★</span>
+                {t('rateMe')}
+              </a>
+            </div>
+          )}
         </div>
       </header>
 
@@ -543,9 +628,9 @@ function App() {
               onClick={() => changeDefaultSpeed(-SPEED_STEP)}
               aria-label="Decrease global speed"
             >
-              -
+              −
             </button>
-            <span>{formatSpeed(defaultSpeed)}</span>
+            <span>{formatSpeed(defaultSpeed)}x</span>
             <button
               type="button"
               onClick={() => changeDefaultSpeed(SPEED_STEP)}
@@ -607,19 +692,15 @@ function App() {
           </button>
         </div>
         <div className="shortcuts__list">
-          {SHORTCUT_ACTION_ORDER.map((id) => {
-            const isRecording = recording === id;
-            const binding = shortcuts ? shortcuts[id] : null;
-            const conflictAction = isRecording && pending ? pending.conflict : null;
-            return (
-              <div
-                key={id}
-                className={`shortcuts__row${isRecording ? ' shortcuts__row--recording' : ''}`}
-                ref={isRecording ? recordingRowRef : undefined}
-              >
-                <span className="shortcuts__name">{shortcutActionName(id)}</span>
-                <span className="shortcuts__binding">
-                  {isRecording
+          {SHORTCUT_GROUPS.map((group) => (
+            <div className="shortcuts__group" key={group.titleKey}>
+              <div className="shortcuts__group-title">{t(group.titleKey)}</div>
+              {group.actionIds.map((id) => {
+                const isRecording = recording === id;
+                const binding = shortcuts ? shortcuts[id] : null;
+                const conflictAction = isRecording && pending ? pending.conflict : null;
+                const bindingLabel =
+                  isRecording
                     ? pending
                       ? formatShortcutBinding(pending.binding)
                       : t('shortcutsRecordHint')
@@ -627,69 +708,103 @@ function App() {
                       ? '-'
                       : binding
                         ? formatShortcutBinding(binding)
-                        : t('shortcutsDisabled')}
-                </span>
-                <span className="shortcuts__controls">
-                  {isRecording ? (
-                    conflictAction ? (
-                      <>
-                        <button
-                          type="button"
-                          className="shortcuts__button shortcuts__button--primary"
-                          onClick={() => void swapShortcut()}
-                        >
-                          {t('shortcutsSwap')}
-                        </button>
-                        <button
-                          type="button"
-                          className="shortcuts__button"
-                          onClick={cancelRecording}
-                        >
-                          {t('shortcutsCancel')}
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="shortcuts__button"
-                        onClick={cancelRecording}
-                      >
-                        {t('shortcutsCancel')}
-                      </button>
-                    )
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        className="shortcuts__button"
-                        onClick={() => startRecording(id)}
-                        disabled={!shortcuts}
-                      >
-                        {t('shortcutsChange')}
-                      </button>
-                      {binding && (
-                        <button
-                          type="button"
-                          className="shortcuts__button"
-                          onClick={() => void applyShortcut(id, null)}
-                        >
-                          {t('shortcutsDisable')}
-                        </button>
+                        : t('shortcutsDisabled');
+                return (
+                  <div
+                    key={id}
+                    className={`shortcuts__row${
+                      isRecording ? ' shortcuts__row--recording' : ''
+                    }`}
+                    ref={isRecording ? recordingRowRef : undefined}
+                  >
+                    <span className="shortcuts__name">{shortcutActionName(id)}</span>
+                    <span
+                      className={`shortcuts__binding${
+                        !isRecording && shortcuts && !binding
+                          ? ' shortcuts__binding--disabled'
+                          : ''
+                      }`}
+                    >
+                      {/* A binding is a key, not a link: keycap chips, with
+                          `+` outside the kbd like a chord written on paper. */}
+                      {isRecording
+                        ? bindingLabel
+                        : !shortcuts
+                          ? bindingLabel
+                          : binding
+                            ? formatShortcutBinding(binding)
+                                .split('+')
+                                .map((part, index) => (
+                                  <span key={`${id}-${index}`}>
+                                    {index > 0 && <span aria-hidden="true">+</span>}
+                                    <kbd>{part}</kbd>
+                                  </span>
+                                ))
+                            : bindingLabel}
+                    </span>
+                    <span className="shortcuts__controls">
+                      {isRecording ? (
+                        conflictAction ? (
+                          <>
+                            <button
+                              type="button"
+                              className="shortcuts__button shortcuts__button--primary"
+                              onClick={() => void swapShortcut()}
+                            >
+                              {t('shortcutsSwap')}
+                            </button>
+                            <button
+                              type="button"
+                              className="shortcuts__button"
+                              onClick={cancelRecording}
+                            >
+                              {t('shortcutsCancel')}
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="shortcuts__button"
+                            onClick={cancelRecording}
+                          >
+                            {t('shortcutsCancel')}
+                          </button>
+                        )
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            className="shortcuts__button"
+                            onClick={() => startRecording(id)}
+                            disabled={!shortcuts}
+                          >
+                            {t('shortcutsChange')}
+                          </button>
+                          {binding && (
+                            <button
+                              type="button"
+                              className="shortcuts__button"
+                              onClick={() => void applyShortcut(id, null)}
+                            >
+                              {t('shortcutsDisable')}
+                            </button>
+                          )}
+                        </>
                       )}
-                    </>
-                  )}
-                </span>
-                {conflictAction && (
-                  <div className="shortcuts__conflict">
-                    {t('shortcutsConflictWith').replace(
-                      '{action}',
-                      shortcutActionName(conflictAction),
+                    </span>
+                    {conflictAction && (
+                      <div className="shortcuts__conflict">
+                        {t('shortcutsConflictWith').replace(
+                          '{action}',
+                          shortcutActionName(conflictAction),
+                        )}
+                      </div>
                     )}
                   </div>
-                )}
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          ))}
         </div>
       </section>
 
@@ -753,7 +868,7 @@ function App() {
                       >
                         -
                       </button>
-                      <span>{formatSpeed(channel.speed)}</span>
+                      <span>{formatSpeed(channel.speed)}x</span>
                       <button
                         type="button"
                         onClick={() =>
