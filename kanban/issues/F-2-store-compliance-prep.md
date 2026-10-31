@@ -122,3 +122,18 @@ S
   参照 `design/` 先例；`wxt.config.ts` `zip.excludeSources` 追加
   `'store-assets/**'`（minimatch 逐文件过滤，glob 同 F-2 主项经验），
   确保 AMO sources zip 不含截图素材。
+
+## 发布记录（2026-11-01，v0.1.0 release 已发布）
+
+- `pnpm compile` + `pnpm test`（204 例）+ 双端构建通过；web-ext lint 0 errors / 4 warnings：
+  - KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION ×2：`data_collection_permissions` 需 Firefox 140+（Android 142+），
+    strict_min_version 109 的旧版忽略该字段，无害，已写入 release notes
+  - UNSAFE_VAR_ASSIGNMENT ×2：位于 `chunks/video-CoisZU_c.js`（React DOM 运行时 setInnerHTML 实现），非本仓代码
+- 双端 zip + sources zip 构建并核对：version 0.1.0；Chrome 产物无 gecko 字段泄漏；
+  sources zip 含 src/entrypoints/docs/public/kanban/LICENSE/pnpm-lock，不含 design/、store-assets/、node_modules、.output
+- `store-assets/` 入库后 `zip.excludeSources` 追加 `'store-assets/**'`
+- 推送 main（3f366c4..9c03000）→ 打 tag `v0.1.0` 并推送 →
+  GitHub Release https://github.com/cholf5/bilibili-speed-master/releases/tag/v0.1.0
+  附 chrome/firefox/sources 三个 zip 与 SHA-256
+- 备注：截图素材在构建期间被并行会话更新（popup-board.html 尺寸调整 + raw png 重生成），
+  未纳入本次 release 流程，保持工作区未提交状态，待素材负责人自行提交
