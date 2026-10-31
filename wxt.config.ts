@@ -9,9 +9,10 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   zip: {
-    // Local design assets (icon candidates, preview pages) must not leak into
-    // the AMO source submission.
-    excludeSources: ['design/**'],
+    // Local design assets (icon candidates, preview pages) and store listing
+    // material (screenshots, capture scripts) must not leak into the AMO
+    // source submission.
+    excludeSources: ['design/**', 'store-assets/**'],
   },
   // D-8: manifest is a function so Firefox-only fields (gecko id for AMO)
   // never leak into the Chrome build.

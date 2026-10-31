@@ -115,3 +115,10 @@ S
 - 评估期间 `design/` 目录与图标重绘（`public/icon/*.png`）由并行会话
   提交（467337a、36caf25），导致本轮 firefox zip 体积从 ~304KB 变为
   ~231KB（新图标更小）——已逐文件 diff 确认为图标替换，非构建缺失。
+
+## 开发记录（2026-11-01，release 流程执行）
+
+- `store-assets/`（截图原始图 + 生成脚本，约 4.6MB）作为上架素材入库，
+  参照 `design/` 先例；`wxt.config.ts` `zip.excludeSources` 追加
+  `'store-assets/**'`（minimatch 逐文件过滤，glob 同 F-2 主项经验），
+  确保 AMO sources zip 不含截图素材。

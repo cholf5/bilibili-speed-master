@@ -1,0 +1,63 @@
+<!doctype html>
+<!-- F-2: store-shot board — hosts the REAL built popup bundle over http with
+     the mock chrome layer, framed on a branded backdrop for the store
+     screenshot. 372px popup stage + gradient board, 640x400 final crop. -->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<title>Speed Master — store shot</title>
+<style>
+  html, body { margin: 0; padding: 0; }
+  body {
+    width: 1280px; height: 800px;
+    box-sizing: border-box;
+    display: flex; align-items: center; justify-content: center; gap: 72px;
+    background:
+      radial-gradient(900px 600px at 78% 18%, rgba(251, 114, 153, 0.16), transparent 60%),
+      radial-gradient(700px 500px at 12% 85%, rgba(64, 169, 255, 0.12), transparent 55%),
+      linear-gradient(135deg, #f8f9fb 0%, #eef1f6 100%);
+    font-family: 'PingFang SC', 'Helvetica Neue', sans-serif;
+    overflow: hidden;
+  }
+  .board-copy { max-width: 460px; }
+  .board-copy .kicker {
+    font-size: 15px; letter-spacing: 0.28em; color: #fb7299; font-weight: 600;
+    margin-bottom: 18px;
+  }
+  .board-copy h1 {
+    font-size: 44px; line-height: 1.25; color: #18191c; margin: 0 0 22px;
+    font-weight: 700;
+  }
+  .board-copy h1 em { font-style: normal; color: #fb7299; }
+  .board-copy ul { list-style: none; padding: 0; margin: 0; }
+  .board-copy li {
+    font-size: 17px; color: #4e5561; line-height: 2.1; padding-left: 28px;
+    position: relative;
+  }
+  .board-copy li::before {
+    content: ''; position: absolute; left: 0; top: 11px;
+    width: 14px; height: 14px; border-radius: 4px;
+    background: linear-gradient(135deg, #fb7299, #fc8ba7);
+  }
+  .stage {
+    width: 372px; min-width: 372px; height: 660px;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 24px 64px rgba(24, 25, 28, 0.22), 0 4px 16px rgba(24, 25, 28, 0.10);
+    background: #fff;
+  }
+  .stage iframe { width: 372px; height: 660px; border: 0; display: block; }
+</style>
+</head>
+<body>
+  <div class="board-copy">
+    <div class="kicker">BILIBILI SPEED MASTER</div>
+    <h1>每次打开 B 站<br />倍速<em>自动就位</em></h1>
+    <ul>
+      <li>全局默认倍速，频道级覆盖</li>
+      <li>纯本地运行，不收集任何数据</li>
+      <li>快捷键、角标控件、省时统计</li>
+    </ul>
+  </div>
+  <div class="stage"><iframe src="/popup-shot.html"></iframe></div>
+</body>
+</html>
