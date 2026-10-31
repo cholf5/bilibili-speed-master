@@ -1,25 +1,26 @@
 .popup {
-  width: 360px;
-  padding: 18px;
-  background: #1f1f1f;
-  color: #f5f7ff;
+  width: 372px;
+  padding: 16px;
+  background: var(--sm-panel);
+  border: 1px solid var(--sm-line);
+  color: var(--sm-text);
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  border-radius: 16px;
+  gap: 14px;
+  border-radius: var(--sm-radius-lg);
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 .popup__header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
 }
 
 .brand {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -27,87 +28,142 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #101215;
+  background: var(--sm-bg);
   position: relative;
   display: grid;
   place-items: center;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 2px var(--sm-line-strong);
 }
 
 .brand__ring {
   position: absolute;
   inset: 5px;
   border-radius: 50%;
-  border: 2px dashed rgba(255, 255, 255, 0.65);
+  border: 2px dashed rgba(255, 255, 255, 0.55);
 }
 
 .brand__play {
   width: 0;
   height: 0;
-  border-left: 10px solid #3ea6ff;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
+  border-left: 9px solid var(--sm-accent);
+  border-top: 5.5px solid transparent;
+  border-bottom: 5.5px solid transparent;
   transform: translateX(1px);
 }
 
 .brand__text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .brand__title {
   font-weight: 600;
-  font-size: 16px;
+  font-size: 15px;
+  letter-spacing: 0.1px;
 }
 
 .brand__subtitle {
-  font-size: 12px;
-  color: #3ea6ff;
+  font-size: 11.5px;
+  color: var(--sm-text-muted);
 }
 
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 14px;
-  border-radius: 14px;
-  background: #262626;
+.brand__subtitle:hover {
+  color: var(--sm-text-secondary);
 }
 
+/* Opens the options page; a quiet gear matching the on-player widget. */
+.header__gear {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--sm-line);
+  border-radius: var(--sm-radius-sm);
+  background: transparent;
+  color: var(--sm-text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.header__gear:hover {
+  background: var(--sm-control);
+  color: var(--sm-text);
+}
+
+.header__gear svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+  display: block;
+}
+
+/*
+ * The hero card: everything about the video you are on. The big rate is the
+ * one deliberately loud element in the popup.
+ */
 .channel-card {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: #26313d;
-  border: 1px solid rgba(62, 166, 255, 0.45);
+  padding: 12px 14px 13px;
+  border-radius: var(--sm-radius-lg);
+  background: var(--sm-panel-raised);
+  border: 1px solid var(--sm-line);
+}
+
+.channel-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .channel-card__label {
   font-size: 11px;
-  color: #78b8ff;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  font-weight: 600;
+  color: var(--sm-text-muted);
+  letter-spacing: 0.3px;
+}
+
+/* Core concept, glanceable: where this channel's rate comes from. */
+.channel-card__pill {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--sm-blue-dim);
+  color: var(--sm-blue);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.channel-card__pill--override {
+  background: var(--sm-accent-dim);
+  color: var(--sm-accent);
 }
 
 .channel-card__row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
+  min-width: 0;
 }
 
 .channel-card__avatar {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
-  background: #101215;
+  background: var(--sm-bg);
+  box-shadow: inset 0 0 0 1px var(--sm-line-strong);
   display: grid;
   place-items: center;
   font-size: 12px;
-  color: #fff;
+  color: var(--sm-text-secondary);
   flex-shrink: 0;
 }
 
@@ -121,49 +177,79 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .channel-card__name {
   font-size: 13px;
-  color: #f5f7ff;
+  font-weight: 500;
+  color: var(--sm-text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.channel-card__meta {
-  font-size: 11px;
-  color: #9aa4b6;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-/* D-10: meta line with the inline "follow global" action. */
-.channel-card__meta-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
+/* D-10: one-click "follow global" escape hatch, styled as a quiet link. */
 .channel-card__follow-global {
-  flex-shrink: 0;
-  border: 1px solid rgba(62, 166, 255, 0.45);
-  border-radius: 999px;
+  align-self: flex-start;
+  border: none;
   background: transparent;
-  color: #78b8ff;
-  font-size: 10px;
-  line-height: 1;
-  padding: 3px 8px;
+  padding: 0;
+  color: var(--sm-text-muted);
+  font-size: 11.5px;
+  line-height: 1.4;
   cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--sm-line-strong);
+  text-underline-offset: 2px;
 }
 
 .channel-card__follow-global:hover {
-  background: rgba(62, 166, 255, 0.15);
+  color: var(--sm-accent);
+  text-decoration-color: currentColor;
+}
+
+/* Speed row: the big reading left, the stepper right. */
+.channel-card__speed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.channel-card__value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+  font-size: 27px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--sm-accent);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.channel-card__value-unit {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--sm-accent);
+  opacity: 0.75;
+}
+
+/* Unknown until the content script reports a rate: honest placeholder. */
+.channel-card__value--unknown {
+  color: var(--sm-text-muted);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 12px 14px;
+  border-radius: var(--sm-radius-lg);
+  background: var(--sm-panel-raised);
+  border: 1px solid var(--sm-line);
 }
 
 .row {
@@ -175,110 +261,133 @@
 
 .row__label {
   font-size: 13px;
-  color: #f5f7ff;
+  color: var(--sm-text-secondary);
 }
 
 .stepper {
   display: grid;
-  grid-template-columns: 28px 44px 28px;
+  grid-template-columns: 30px 46px 30px;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .stepper button {
   border: none;
-  border-radius: 8px;
-  height: 28px;
-  background: #323232;
-  color: #fff;
+  border-radius: var(--sm-radius-sm);
+  height: 30px;
+  background: var(--sm-control);
+  color: var(--sm-text);
   font-weight: 600;
+  font-size: 15px;
+  line-height: 1;
   cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.stepper button:hover {
+  background: var(--sm-panel-raised);
+  box-shadow: inset 0 0 0 1px var(--sm-line-strong);
+}
+
+.stepper button:active {
+  transform: translateY(0.5px);
 }
 
 .stepper span {
   text-align: center;
+  font-weight: 600;
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
-.stepper--disabled button {
-  cursor: not-allowed;
-  opacity: 0.45;
+/* Hero-card stepper: minus/plus pair beside the big reading, no value slot. */
+.channel-card__speed .stepper {
+  grid-template-columns: 30px 30px;
+  flex-shrink: 0;
 }
 
 .select {
   width: 140px;
-  background: #323232;
+  background: var(--sm-control);
   border: none;
-  border-radius: 8px;
-  color: #3ea6ff;
-  padding: 6px 10px;
+  border-radius: var(--sm-radius-sm);
+  color: var(--sm-text);
+  padding: 7px 10px;
   font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
 }
 
+/* Cumulative stat: a quiet bar, the number is the payload. */
 .stats {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: baseline;
   gap: 6px;
-  font-size: 13px;
-  color: #d9deef;
+  padding: 0 2px;
+  font-size: 12.5px;
+  color: var(--sm-text-muted);
 }
 
 .stats strong {
-  color: #78b8ff;
+  color: var(--sm-text);
   font-weight: 600;
-}
-
-.rating {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  color: #f5c518;
-  font-size: 16px;
+  font-variant-numeric: tabular-nums;
 }
 
 .options-button {
   display: inline-flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: #2b2b2b;
-  color: #fff;
+  padding: 9px 12px;
+  border-radius: var(--sm-radius-md);
+  border: 1px solid var(--sm-line-strong);
+  background: transparent;
+  color: var(--sm-text);
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.15s ease;
 }
 
-.options-button__icon {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  border: 2px solid #9aa4b6;
-  position: relative;
+.options-button:hover {
+  background: var(--sm-control);
 }
 
-.options-button__icon::after {
-  content: '';
-  position: absolute;
-  inset: 3px;
-  border-radius: 50%;
-  border: 2px solid #9aa4b6;
-}
-
+/* E-1 + rating: one quiet footer line for repo, license, rate and version. */
 .oss-line {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 7px;
+  font-size: 11.5px;
+  color: var(--sm-text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .oss-line a {
-  color: #9aa4b6;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
 }
 
 .oss-line a:hover {
-  color: #3ea6ff;
+  color: var(--sm-accent);
+  text-decoration-color: currentColor;
+}
+
+.oss-line__dot {
+  opacity: 0.6;
+}
+
+.oss-line__rate {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.oss-line__star {
+  color: var(--sm-star);
+  font-size: 11px;
 }

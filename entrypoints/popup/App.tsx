@@ -18,8 +18,15 @@ import { STATS_STORAGE_KEY, getSavedStats } from '@/src/shared/stats';
 // shared modules instead of local copies (previously re-defined here).
 import { SPEED_STEP, clampSpeed, formatSpeed } from '@/src/shared/speed';
 import { normalizeAvatarUrl, type ChannelInfo } from '@/src/shared/video';
-import { LICENSE_NAME, LICENSE_URL, SOURCE_REPO_URL } from '@/src/shared/about';
+import { LICENSE_NAME, LICENSE_URL, RATE_URL, SOURCE_REPO_URL } from '@/src/shared/about';
 import { t } from '@/src/shared/i18n';
+
+// Same gear glyph as the on-player widget, one icon shape across surfaces.
+const GEAR_SVG = (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z" />
+  </svg>
+);
 
 const fetchCurrentChannel = async (): Promise<ChannelInfo | null> => {
   const root = globalThis as typeof globalThis & { browser?: any; chrome?: any };
@@ -290,18 +297,17 @@ function App() {
   const preferredQuality = config?.global.preferredQuality ?? 'auto';
 
   // Tells the user where the channel's effective speed comes from: a stored
-  // channel override or the global default.
-  const channelSpeedMeta = channel
-    ? config?.channels[channel.channelId]
+  // channel override or the global default (the pill on the hero card).
+  // D-10: an entry in `channels` IS an override — even when its speed happens
+  // to equal the global default (B-4's phantom-override background), the
+  // entry still diverts this channel from following the global stepper. Only
+  // then is the one-click "follow global" escape hatch rendered.
+  const hasChannelOverride = Boolean(channel && config?.channels[channel.channelId]);
+  const channelSpeedPill = channel
+    ? hasChannelOverride && config?.channels[channel.channelId]
       ? `${t('channelOverride')} · ${formatSpeed(config.channels[channel.channelId].speed)}`
       : `${t('followingGlobal')} · ${formatSpeed(defaultSpeed)}`
     : '';
-
-  // D-10: an entry in `channels` IS an override — even when its speed happens
-  // to equal the global default (B-4's phantom-override background), the entry
-  // still diverts this channel from following the global stepper. Only then is
-  // the one-click "follow global" escape hatch rendered.
-  const hasChannelOverride = Boolean(channel && config?.channels[channel.channelId]);
 
   return (
     <div className="popup">
@@ -323,11 +329,29 @@ function App() {
             </a>
           </div>
         </div>
+        <button
+          type="button"
+          className="header__gear"
+          onClick={openOptions}
+          aria-label={t('moreOptions')}
+        >
+          {GEAR_SVG}
+        </button>
       </header>
 
       {channel && (
         <section className="channel-card">
-          <div className="channel-card__label">{t('currentChannel')}</div>
+          <div className="channel-card__top">
+            <div className="channel-card__label">{t('currentChannel')}</div>
+            {/* Core concept at a glance: override vs following global. */}
+            <span
+              className={`channel-card__pill${
+                hasChannelOverride ? ' channel-card__pill--override' : ''
+              }`}
+            >
+              {channelSpeedPill}
+            </span>
+          </div>
           <div className="channel-card__row">
             <div className="channel-card__avatar">
               {normalizeAvatarUrl(channel.avatarUrl) ? (
@@ -340,33 +364,40 @@ function App() {
               <span className="channel-card__name" title={channel.channelName}>
                 {channel.channelName}
               </span>
-              {/* D-10: meta line plus the one-click "follow global" action;
-                  the button only exists while an override entry does. */}
-              <span className="channel-card__meta-row">
-                <span className="channel-card__meta">{channelSpeedMeta}</span>
-                {hasChannelOverride && (
-                  <button
-                    type="button"
-                    className="channel-card__follow-global"
-                    onClick={() => void clearChannelOverride()}
-                  >
-                    {t('followGlobal')}
-                  </button>
-                )}
-              </span>
+              {/* D-10: the one-click "follow global" action; the button only
+                  exists while an override entry does. */}
+              {hasChannelOverride && (
+                <button
+                  type="button"
+                  className="channel-card__follow-global"
+                  onClick={() => void clearChannelOverride()}
+                >
+                  {t('followGlobal')}
+                </button>
+              )}
             </div>
+          </div>
+          <div className="channel-card__speed">
+            {/* The hero reading: the rate this video plays at. Unknown until
+                the content script reports it (e.g. tabs opened before the
+                extension was installed); never show the default speed here,
+                it would look like a real reading. */}
+            <span
+              className={`channel-card__value${
+                currentSpeed === null ? ' channel-card__value--unknown' : ''
+              }`}
+            >
+              {currentSpeed === null ? '–' : formatSpeed(currentSpeed)}
+              <span className="channel-card__value-unit">x</span>
+            </span>
             <div className="stepper">
               <button
                 type="button"
                 onClick={() => changeCurrentSpeed(-SPEED_STEP)}
                 aria-label="Decrease speed for this channel"
               >
-                -
+                −
               </button>
-              {/* Unknown until the content script reports a rate (e.g. tabs
-                  opened before the extension was installed); never show the
-                  default speed here, it would look like a real reading. */}
-              <span>{currentSpeed === null ? '–' : formatSpeed(currentSpeed)}</span>
               <button
                 type="button"
                 onClick={() => changeCurrentSpeed(SPEED_STEP)}
@@ -388,7 +419,7 @@ function App() {
               onClick={() => changeDefaultSpeed(-SPEED_STEP)}
               aria-label="Decrease global speed"
             >
-              -
+              −
             </button>
             <span>{formatSpeed(defaultSpeed)}</span>
             <button
@@ -417,33 +448,34 @@ function App() {
       </section>
 
       <section className="stats">
-        <span>{t('totalTimeSaved')}:</span>
+        <span>{t('totalTimeSaved')}</span>
         <strong>
           {hoursSaved} {t('hours')}
         </strong>
       </section>
 
-      <section className="rating" aria-label="Rating">
-        <span aria-hidden="true">&#9733;</span>
-        <span aria-hidden="true">&#9733;</span>
-        <span aria-hidden="true">&#9733;</span>
-        <span aria-hidden="true">&#9733;</span>
-        <span aria-hidden="true">&#9733;</span>
-      </section>
-
       <button className="options-button" type="button" onClick={openOptions}>
-        <span className="options-button__icon" aria-hidden="true" />
         {t('moreOptions')}
       </button>
 
-      {/* One quiet open-source line: repo + license (the header already links
-          the author). Constants come from the shared about module. */}
+      {/* One quiet footer line: repo, license and — once a store listing
+          exists (RATE_URL in src/shared/about.ts) — the rating link. The
+          header already links the author. */}
       <footer className="oss-line">
         <a href={SOURCE_REPO_URL} target="_blank" rel="noreferrer">
           {t('openSourceRepo')}
         </a>
-        <span aria-hidden="true">·</span>
+        <span className="oss-line__dot" aria-hidden="true">·</span>
         <a href={LICENSE_URL} target="_blank" rel="noreferrer">{LICENSE_NAME}</a>
+        {RATE_URL && (
+          <>
+            <span className="oss-line__dot" aria-hidden="true">·</span>
+            <a className="oss-line__rate" href={RATE_URL} target="_blank" rel="noreferrer">
+              <span className="oss-line__star" aria-hidden="true">★</span>
+              {t('rateMe')}
+            </a>
+          </>
+        )}
       </footer>
     </div>
   );
