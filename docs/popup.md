@@ -154,29 +154,30 @@ Below is a structured UI reverse-engineering description based on the provided s
 
 ## 4. VISUAL STYLE TOKENS
 
-* **Color Palette**
+* **Color Palette** (tokens live in `entrypoints/shared-ui.css`)
 
-  * Background: #1f1f1f (approx.)
-  * Panel elements: #2a2a2a to #333333
-  * Primary text: #ffffff
-  * Secondary text / links: #3ea6ff (blue)
-  * Accent (rating): #f5c518 (yellow)
+  * Background: `--sm-bg` #17181c
+  * Panel elements: `--sm-panel` #212329 / `--sm-panel-raised` #282b33
+  * Primary text: `--sm-text` #f2f4f8
+  * Secondary text: `--sm-text-secondary` #aab2c0; muted: #79828f
+  * Accent (links, hero reading, toggle): Bilibili pink `--sm-accent` #fb7299
+  * Secondary accent (OSS links): `--sm-blue` #6bb7d8
 
 * **Typography**
 
-  * Sans-serif system font
-  * Title: Bold, larger size
+  * Space Grotesk, bundled locally (`public/fonts/*.woff2`, no network fetch)
+  * Title: 600 weight
   * Labels: Regular weight
-  * Values: Regular to medium weight
+  * Hero speed reading: 27px, 600 weight, tabular-nums
 
 * **Corner Radius**
 
-  * Buttons and inputs: Medium radius (approx. 6–8px)
+  * Cards 16px, buttons/inputs 10px, small controls 7px
 
 * **Icons**
 
   * Flat, no shadows
-  * Single-color glyphs
+  * Single-color glyphs; header gear reuses the on-player widget's gear
 
 ---
 

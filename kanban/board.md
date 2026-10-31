@@ -10,6 +10,7 @@
 - 
 
 ## In Review
+- F-1 UI 重设计：品牌色换 B 站粉 #fb7299 + token 化 shared-ui.css + popup 频道卡 hero 化（大号速率/状态 pill/评分降页脚）+ 快捷键 7 组分组与键帽 kbd + 字体本地打包（public/fonts 48KB）+ 全局 focus-visible/reduced-motion + RATE_URL 条件评分 + 频道删除确认 + 速度单位统一 x（i18n 8 key × 18 locale；compile + 219 例单测 + 双端构建 + mock 页截图验证；待真机 TC1-TC4）（P2）
 - E-1 popup/options 展示开源信息（GitHub 仓库 / Issues 反馈 / MPL-2.0 / manifest 版本号；about 常量收敛 src/shared/about.ts × 6 例单测，18 locale 同步；compile + 219 例单测 + 双端构建通过；待真机验收 TC2-TC4）（P3）
 - D-13 直播页支持评估（调研完成 + PM 抽查代码论断属实；决策文档 docs/live-support-evaluation.md，倾向正播不支持+回放页 /record/ 支持；**待维护者拍板**，拍板后另立实现卡）（P3）
 

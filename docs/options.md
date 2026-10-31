@@ -231,23 +231,34 @@ Each row has uniform height.
 
 ## 4. VISUAL STYLE TOKENS
 
-### Colors
+### Colors (tokens live in `entrypoints/shared-ui.css`)
 
-* Page background: ~#1e1f22
-* Card background: ~#2b2d31
-* Table background: ~#2b2d31
-* Primary text: #ffffff
-* Secondary text: #b0b0b0
-* Accent blue: #4da3ff
-* Accent yellow (stars): #f5c518
+* Page background: `--sm-bg` #17181c
+* Card background: `--sm-panel` #212329
+* Table background: `--sm-panel` #212329
+* Primary text: `--sm-text` #f2f4f8
+* Secondary text: `--sm-text-secondary` #aab2c0; muted: #79828f
+* Accent (stat value, toggle): Bilibili pink `--sm-accent` #fb7299
+* Secondary accent (OSS links): `--sm-blue` #6bb7d8
+* Shortcut bindings: keycap chips (bordered `kbd`), not colored text
 
 ### Typography
 
-* Sans-serif system font
-* Titles: Bold
+* Space Grotesk, bundled locally (`public/fonts/*.woff2`, no network fetch)
+* Titles: 600 weight
 * Labels: Regular
-* Values: Medium–bold
-* Numeric values monospaced appearance (consistent width)
+* Values: 600 weight, tabular-nums; speed values carry the `x` unit
+
+### Shortcut list structure
+
+* Rows grouped under section titles (Playback / Seeking / Volume / Speed /
+  Player & navigation / Jump to percent / Media keys), matching the keymap's
+  design groups; matching order still follows `SHORTCUT_ACTION_ORDER`.
+
+### Confirmations
+
+* Channel override delete asks for confirmation (same as restore-defaults
+  and import).
 
 ### Shapes
 
