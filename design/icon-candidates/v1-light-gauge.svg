@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <!-- v1 light gauge: near-white plate, pink 270-degree arc, ink play -->
+  <circle cx="512" cy="512" r="512" fill="#f5f6f8"/>
+  <circle cx="512" cy="512" r="504" fill="none" stroke="#d9dbe0" stroke-width="14"/>
+  <path d="M 512 112 A 400 400 0 1 1 512 912" fill="none" stroke="#fb7299" stroke-width="64" stroke-linecap="round"/>
+  <polygon points="682,518 348,323 348,713" fill="#22252b" stroke="#22252b" stroke-width="44" stroke-linejoin="round"/>
+</svg>

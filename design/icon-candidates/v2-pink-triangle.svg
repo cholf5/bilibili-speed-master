@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+<!-- v2-pink-triangle — measured geometry of public/icon/512.png scaled to 1024: 12 arc ticks r=402-466, 24.4deg/5.6deg, solid play triangle back x=392 half-h=204 apex x=734. One variable: triangle recolored to UI pink. -->
+<circle cx="512" cy="512" r="512" fill="#161718"/>
+<g>
+  <path d="M 946.0 518.1 A 434 434 0 0 1 904.7 696.8" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 884.8 734.2 A 434 434 0 0 1 759.7 868.4" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 723.7 890.8 A 434 434 0 0 1 548.3 944.5" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 505.9 946.0 A 434 434 0 0 1 327.2 904.7" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 289.8 884.8 A 434 434 0 0 1 155.6 759.7" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 133.2 723.7 A 434 434 0 0 1 79.5 548.3" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 78.0 505.9 A 434 434 0 0 1 119.3 327.2" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 139.2 289.8 A 434 434 0 0 1 264.3 155.6" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 300.3 133.2 A 434 434 0 0 1 475.7 79.5" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 518.1 78.0 A 434 434 0 0 1 696.8 119.3" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 734.2 139.2 A 434 434 0 0 1 868.4 264.3" stroke="#ababab" stroke-width="64" fill="none"/>
+  <path d="M 890.8 300.3 A 434 434 0 0 1 944.5 475.7" stroke="#ababab" stroke-width="64" fill="none"/>
+</g>
+<polygon points="734,512 392,308 392,716" fill="#fb7299"/>
+</svg>
