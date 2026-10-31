@@ -85,7 +85,26 @@ M
 
 ## Review Notes
 
-- 匹配/执行逻辑未动:分组仅影响渲染顺序,
+- 匹配/执行逻辑未动：分组仅影响渲染顺序，
   `findBindingConflict`/执行器仍按 `SHORTCUT_ACTION_ORDER` 平序工作。
-- 存储结构与写入路径未动,无回归面;风险集中在纯 UI 层。
-- 构建产物含 `public/fonts`(约 +48KB,zip 包体积影响可忽略)。
+- 存储结构与写入路径未动，无回归面；风险集中在纯 UI 层。
+- 构建产物含 `public/fonts`（约 +48KB，zip 包体积影响可忽略）。
+
+## Follow-up: icon redesign (2026-11-01, same card)
+
+UI 换粉后同步重设计应用图标（app-icon-design skill 流程）：
+
+- v1 三稿（表盘加弧/双三角/浅色表盘）被用户否决——「都不如现在的好看」。
+  结论：原图「12 段短刻度点划环 + 实心播放三角」的构图本身就是对的，不改结构。
+- v2 从原图 512px 逐像素量出几何（刻度环带 r 402–466、每段 24.4°/间隔 5.6°、
+  三角 back x392 half-h 204 apex x734），忠实重建基线自检一致后，仅换
+  三角色：`#59b2fd` 亮蓝 → B 站粉 `#fb7299`（候选 A 原色/B 粉三角/C 粉+暖灰
+  刻度，预览页 design/icon-candidates/）。
+- 期间用户也质询了 UI 换粉的前提（B 站双品牌色），出过粉/蓝双版 popup
+  对比页（design/accent-preview/），用户目检后**定稿：粉 #FB7299**，
+  UI token 维持不变；图标同步选 B（只换三角色的最小改动）。
+- 全套 {16,32,48,96,128,512} 用 Chrome 无头从 SVG 全出血渲染后 LANCZOS
+  降采样（make-icon.py 的 master 是 Apple 网格带 8% 边距，会让工具栏图标
+  显小，弃用）；旧图标存档 design/icon-candidates/previous-set/。
+- 24/16px 双底对比达旧版同等清晰度。design/ 已加入 zip excludeSources
+  （用户改动），不会进 AMO 源码包。
