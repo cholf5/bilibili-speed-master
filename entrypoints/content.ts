@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-14: assembly only. Channel detection, speed mediation, widget, shortcuts,
 // stats, and messaging live in src/content/* (WXT treats every .ts under
 // entrypoints/ as an entrypoint, so modules must not live here — D-9 lesson).

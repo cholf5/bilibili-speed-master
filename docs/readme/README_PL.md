@@ -60,6 +60,7 @@ Bilibili Speed Master jest open source. Issues i PR są mile widziane.
 
 - **Otwarte**: Logika rdzeniowa, adaptacja DOM, przechwytywanie zachowań, przechowywanie ustawień
 - **Zastrzeżone**: Materiały sklepu (Logo / Banner), nazwa marki, oficjalne kanały wydań
+- **Forki i przebudowy**: nie mogą być publikowane w sklepach z rozszerzeniami pod tą samą nazwą; materiały sklepu i nazwa marki nie są objęte licencją MPL-2.0
 - **Licencja**: MPL-2.0 (Mozilla Public License 2.0: dozwolone użycie komercyjne, modyfikacja i dystrybucja; zmodyfikowane pliki muszą pozostać open source) [Pełny tekst](https://www.mozilla.org/en-US/MPL/2.0/)
 
 ---

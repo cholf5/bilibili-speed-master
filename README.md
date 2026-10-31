@@ -60,6 +60,7 @@ Bilibili Speed Master 是开源项目，欢迎提交 issue 或 PR。
 
 - **开源内容**：核心逻辑、DOM 适配、行为拦截、配置存储  
 - **保留内容**：商店素材（Logo / Banner）、品牌名、官方发布渠道  
+- **Fork 与二次打包**：不得以相同名称在插件商店上架；商店素材与品牌名不受 MPL-2.0 约束
 - **License**：MPL-2.0（Mozilla Public License 2.0，允许商业使用、修改和分发，但修改过的文件需开源） [详细条款](https://www.mozilla.org/en-US/MPL/2.0/)
 
 

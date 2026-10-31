@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-9: shortcut bindings live in the global partition as action → binding
 // (null = disabled). Types, defaults, and the schema sanitizer come from
 // src/shared/shortcuts.ts so content matching and the options recorder share

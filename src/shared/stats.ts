@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Saved-time statistics (D-1 storage, D-12 counting rule): stats are
 // device-local data with no cross-device sync value, so they live in
 // chrome.storage.local under their own key instead of riding the sync config

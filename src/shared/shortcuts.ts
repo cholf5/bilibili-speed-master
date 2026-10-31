@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-9: configurable keyboard shortcuts. Pure data + pure functions only (the
 // Vitest suite runs in a plain node environment): no DOM, no extension APIs,
 // no storage. content.ts keeps only glue (window keydown listener + action

@@ -60,6 +60,7 @@ Bilibili Speed Master là mã nguồn mở. Hoan nghênh issue và PR.
 
 - **Mở**: Logic cốt lõi, thích ứng DOM, chặn hành vi, lưu cài đặt
 - **Giữ lại**: Tài nguyên cửa hàng (Logo / Banner), tên thương hiệu, kênh phát hành chính thức
+- **Fork và đóng gói lại**: không được phát hành trên cửa hàng tiện ích với cùng tên; tài nguyên cửa hàng và tên thương hiệu không thuộc phạm vi MPL-2.0
 - **Giấy phép**: MPL-2.0 (Mozilla Public License 2.0: cho phép dùng thương mại, sửa đổi và phân phối; tệp chỉnh sửa phải mở nguồn) [Toàn văn](https://www.mozilla.org/en-US/MPL/2.0/)
 
 ---

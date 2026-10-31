@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-6: content-side in-memory cache over getConfig. loadedmetadata / play /
 // emptied and navigation used to re-read storage.sync on every event; after
 // the first read this cache serves every apply path from memory.

@@ -60,6 +60,7 @@ Bilibili Speed Master bersifat open source. Issue dan PR dipersilakan.
 
 - **Terbuka**: Logika inti, adaptasi DOM, intersepsi perilaku, penyimpanan pengaturan
 - **Disimpan**: Aset toko (Logo / Banner), nama merek, kanal rilis resmi
+- **Fork dan repackaging**: tidak boleh dipublikasikan di toko ekstensi dengan nama yang sama; aset toko dan nama merek tidak tercakup dalam lisensi MPL-2.0
 - **Lisensi**: MPL-2.0 (Mozilla Public License 2.0: penggunaan komersial, modifikasi, dan distribusi diizinkan; file yang dimodifikasi harus tetap open source) [Teks lengkap](https://www.mozilla.org/en-US/MPL/2.0/)
 
 ---

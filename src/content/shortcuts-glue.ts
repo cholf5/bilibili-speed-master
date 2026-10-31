@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-14 module split (logic verbatim from entrypoints/content.ts): the keyboard
 // shortcut glue — D-16 target exemption, the D-9 action executor (a big switch,
 // one case per action id), and the capture-phase keydown handler. Matching,

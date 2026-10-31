@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-14: the content script's shared kernel. `entrypoints/content.ts` (WXT
 // forbids extra .ts files under entrypoints/ — see the D-9 lesson) used to hold
 // every mutable state variable in one main() closure; after the module split

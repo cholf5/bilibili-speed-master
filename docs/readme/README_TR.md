@@ -60,6 +60,7 @@ Bilibili Speed Master açık kaynaklıdır. Issue ve PR'lar hoş geldiniz.
 
 - **Açık**: Çekirdek mantık, DOM uyarlama, davranış yakalama, ayar depolama
 - **Ayrılmış**: Mağaza varlıkları (Logo / Banner), marka adı, resmi yayın kanalları
+- **Fork'lar ve yeniden paketlemeler**: eklenti mağazalarında aynı isimle yayınlanmamalıdır; mağaza varlıkları ve marka adı MPL-2.0 kapsamında değildir
 - **Lisans**: MPL-2.0 (Mozilla Public License 2.0: ticari kullanım, değişiklik ve dağıtım serbest; değiştirilmiş dosyalar açık kalmalıdır) [Tam metin](https://www.mozilla.org/en-US/MPL/2.0/)
 
 ---

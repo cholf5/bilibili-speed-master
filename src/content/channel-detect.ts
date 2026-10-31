@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-14 module split (logic verbatim from entrypoints/content.ts): channel
 // identity for /video/ pages — DOM / __INITIAL_STATE__ fallback detection plus
 // the authoritative view-API resolution and its gating (an SPA transition must

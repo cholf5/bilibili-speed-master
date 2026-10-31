@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-14 module split (logic verbatim from entrypoints/content.ts): the popup
 // message channels — the runtime onMessage responder (get/set current speed,
 // get current channel) and the long-lived port channel the popup connects to

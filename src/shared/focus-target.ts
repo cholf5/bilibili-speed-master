@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-16: pure classification of a keydown event target so shortcut handling can
 // defer to elements that own the key. Text-entry targets own every key
 // (isEditableTarget, pre-D-16 semantics); activatable controls (buttons,

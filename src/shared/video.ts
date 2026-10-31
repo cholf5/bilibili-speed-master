@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // Pure helpers extracted verbatim from entrypoints/content.ts (D-15) so they
 // can be unit tested; content.ts imports them instead of defining them inline.
 

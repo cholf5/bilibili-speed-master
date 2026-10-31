@@ -1,3 +1,8 @@
+// Copyright (c) 2026 cholf5
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 // D-6: coalescing scheduler for high-frequency browser callbacks. The
 // MutationObserver on Bilibili's documentElement fires for every danmaku /
 // comment DOM mutation; this collapses each burst into at most one run per
