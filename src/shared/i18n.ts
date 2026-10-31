@@ -66,6 +66,10 @@ const en: Messages = {
   actionMediaPlayPause: 'Media key: Play / Pause',
   actionMediaStop: 'Media key: Stop',
   actionMediaTrackNext: 'Media key: Next track',
+  openSourceTitle: 'Open Source',
+  openSourceRepo: 'Source Code',
+  openSourceFeedback: 'Feedback & Issues',
+  openSourceLicense: 'License',
 };
 
 const zhCN: Messages = {
@@ -129,6 +133,10 @@ const zhCN: Messages = {
   actionMediaPlayPause: '媒体键：播放 / 暂停',
   actionMediaStop: '媒体键：停止',
   actionMediaTrackNext: '媒体键：下一曲',
+  openSourceTitle: '开源',
+  openSourceRepo: '源代码',
+  openSourceFeedback: '反馈与问题',
+  openSourceLicense: '许可证',
 };
 
 const zhTW: Messages = {
@@ -192,6 +200,10 @@ const zhTW: Messages = {
   actionMediaPlayPause: '媒體鍵：播放 / 暫停',
   actionMediaStop: '媒體鍵：停止',
   actionMediaTrackNext: '媒體鍵：下一曲',
+  openSourceTitle: '開源',
+  openSourceRepo: '原始碼',
+  openSourceFeedback: '回報與問題',
+  openSourceLicense: '授權條款',
 };
 
 const ja: Messages = {
@@ -255,6 +267,10 @@ const ja: Messages = {
   actionMediaPlayPause: 'メディアキー: 再生 / 一時停止',
   actionMediaStop: 'メディアキー: 停止',
   actionMediaTrackNext: 'メディアキー: 次のトラック',
+  openSourceTitle: 'オープンソース',
+  openSourceRepo: 'ソースコード',
+  openSourceFeedback: 'フィードバックと不具合報告',
+  openSourceLicense: 'ライセンス',
 };
 
 const ko: Messages = {
@@ -318,6 +334,10 @@ const ko: Messages = {
   actionMediaPlayPause: '미디어 키: 재생 / 일시정지',
   actionMediaStop: '미디어 키: 정지',
   actionMediaTrackNext: '미디어 키: 다음 트랙',
+  openSourceTitle: '오픈 소스',
+  openSourceRepo: '소스 코드',
+  openSourceFeedback: '피드백 및 버그 신고',
+  openSourceLicense: '라이선스',
 };
 
 const es: Messages = {
@@ -381,6 +401,10 @@ const es: Messages = {
   actionMediaPlayPause: 'Tecla multimedia: Reproducir / Pausar',
   actionMediaStop: 'Tecla multimedia: Detener',
   actionMediaTrackNext: 'Tecla multimedia: Pista siguiente',
+  openSourceTitle: 'Código abierto',
+  openSourceRepo: 'Código fuente',
+  openSourceFeedback: 'Comentarios y problemas',
+  openSourceLicense: 'Licencia',
 };
 
 const fr: Messages = {
@@ -444,6 +468,10 @@ const fr: Messages = {
   actionMediaPlayPause: 'Touche média : Lecture / Pause',
   actionMediaStop: 'Touche média : Arrêt',
   actionMediaTrackNext: 'Touche média : Piste suivante',
+  openSourceTitle: 'Open source',
+  openSourceRepo: 'Code source',
+  openSourceFeedback: 'Commentaires et problèmes',
+  openSourceLicense: 'Licence',
 };
 
 const de: Messages = {
@@ -507,6 +535,10 @@ const de: Messages = {
   actionMediaPlayPause: 'Medientaste: Wiedergabe / Pause',
   actionMediaStop: 'Medientaste: Stopp',
   actionMediaTrackNext: 'Medientaste: Nächster Titel',
+  openSourceTitle: 'Open Source',
+  openSourceRepo: 'Quellcode',
+  openSourceFeedback: 'Feedback und Probleme',
+  openSourceLicense: 'Lizenz',
 };
 
 const ru: Messages = {
@@ -570,6 +602,10 @@ const ru: Messages = {
   actionMediaPlayPause: 'Медиаклавиша: Воспроизведение / Пауза',
   actionMediaStop: 'Медиаклавиша: Стоп',
   actionMediaTrackNext: 'Медиаклавиша: Следующая дорожка',
+  openSourceTitle: 'Открытый код',
+  openSourceRepo: 'Исходный код',
+  openSourceFeedback: 'Отзывы и проблемы',
+  openSourceLicense: 'Лицензия',
 };
 
 const ptBR: Messages = {
@@ -633,6 +669,10 @@ const ptBR: Messages = {
   actionMediaPlayPause: 'Tecla de mídia: Reproduzir / Pausar',
   actionMediaStop: 'Tecla de mídia: Parar',
   actionMediaTrackNext: 'Tecla de mídia: Próxima faixa',
+  openSourceTitle: 'Código aberto',
+  openSourceRepo: 'Código-fonte',
+  openSourceFeedback: 'Feedback e problemas',
+  openSourceLicense: 'Licença',
 };
 
 const it: Messages = {
@@ -696,6 +736,10 @@ const it: Messages = {
   actionMediaPlayPause: 'Tasto multimediale: Riproduci / Pausa',
   actionMediaStop: 'Tasto multimediale: Stop',
   actionMediaTrackNext: 'Tasto multimediale: Traccia successiva',
+  openSourceTitle: 'Open source',
+  openSourceRepo: 'Codice sorgente',
+  openSourceFeedback: 'Feedback e problemi',
+  openSourceLicense: 'Licenza',
 };
 
 const tr: Messages = {
@@ -759,6 +803,10 @@ const tr: Messages = {
   actionMediaPlayPause: 'Medya tuşu: Oynat / Duraklat',
   actionMediaStop: 'Medya tuşu: Durdur',
   actionMediaTrackNext: 'Medya tuşu: Sonraki parça',
+  openSourceTitle: 'Açık kaynak',
+  openSourceRepo: 'Kaynak kodu',
+  openSourceFeedback: 'Geri bildirim ve sorunlar',
+  openSourceLicense: 'Lisans',
 };
 
 const vi: Messages = {
@@ -822,6 +870,10 @@ const vi: Messages = {
   actionMediaPlayPause: 'Phím media: Phát / Tạm dừng',
   actionMediaStop: 'Phím media: Dừng',
   actionMediaTrackNext: 'Phím media: Bài tiếp theo',
+  openSourceTitle: 'Mã nguồn mở',
+  openSourceRepo: 'Mã nguồn',
+  openSourceFeedback: 'Phản hồi và vấn đề',
+  openSourceLicense: 'Giấy phép',
 };
 
 const th: Messages = {
@@ -885,6 +937,10 @@ const th: Messages = {
   actionMediaPlayPause: 'ปุ่มสื่อ: เล่น / หยุดชั่วคราว',
   actionMediaStop: 'ปุ่มสื่อ: หยุด',
   actionMediaTrackNext: 'ปุ่มสื่อ: แทร็กถัดไป',
+  openSourceTitle: 'โอเพนซอร์ส',
+  openSourceRepo: 'ซอร์สโค้ด',
+  openSourceFeedback: 'ข้อเสนอแนะและปัญหา',
+  openSourceLicense: 'สัญญาอนุญาต',
 };
 
 const id: Messages = {
@@ -948,6 +1004,10 @@ const id: Messages = {
   actionMediaPlayPause: 'Tombol media: Putar / Jeda',
   actionMediaStop: 'Tombol media: Berhenti',
   actionMediaTrackNext: 'Tombol media: Trek berikutnya',
+  openSourceTitle: 'Sumber terbuka',
+  openSourceRepo: 'Kode sumber',
+  openSourceFeedback: 'Umpan balik dan masalah',
+  openSourceLicense: 'Lisensi',
 };
 
 const ar: Messages = {
@@ -1011,6 +1071,10 @@ const ar: Messages = {
   actionMediaPlayPause: 'مفتاح الوسائط: تشغيل / إيقاف مؤقت',
   actionMediaStop: 'مفتاح الوسائط: إيقاف',
   actionMediaTrackNext: 'مفتاح الوسائط: المقطع التالي',
+  openSourceTitle: 'مفتوح المصدر',
+  openSourceRepo: 'الشيفرة المصدرية',
+  openSourceFeedback: 'الملاحظات والمشكلات',
+  openSourceLicense: 'الترخيص',
 };
 
 const hi: Messages = {
@@ -1074,6 +1138,10 @@ const hi: Messages = {
   actionMediaPlayPause: 'मीडिया कुंजी: चलाएँ / रोकें',
   actionMediaStop: 'मीडिया कुंजी: रोकें',
   actionMediaTrackNext: 'मीडिया कुंजी: अगला ट्रैक',
+  openSourceTitle: 'ओपन सोर्स',
+  openSourceRepo: 'सोर्स कोड',
+  openSourceFeedback: 'प्रतिक्रिया और समस्याएँ',
+  openSourceLicense: 'लाइसेंस',
 };
 
 const pl: Messages = {
@@ -1137,6 +1205,10 @@ const pl: Messages = {
   actionMediaPlayPause: 'Klawisz multimedialny: Odtwórz / Wstrzymaj',
   actionMediaStop: 'Klawisz multimedialny: Zatrzymaj',
   actionMediaTrackNext: 'Klawisz multimedialny: Następne nagranie',
+  openSourceTitle: 'Open source',
+  openSourceRepo: 'Kod źródłowy',
+  openSourceFeedback: 'Opinie i problemy',
+  openSourceLicense: 'Licencja',
 };
 
 type Locale =

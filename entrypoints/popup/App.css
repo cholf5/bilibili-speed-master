@@ -265,3 +265,20 @@
   border-radius: 50%;
   border: 2px solid #9aa4b6;
 }
+
+.oss-line {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.oss-line a {
+  color: #9aa4b6;
+  text-decoration: none;
+}
+
+.oss-line a:hover {
+  color: #3ea6ff;
+}

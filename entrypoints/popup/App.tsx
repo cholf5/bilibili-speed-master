@@ -18,6 +18,7 @@ import { STATS_STORAGE_KEY, getSavedStats } from '@/src/shared/stats';
 // shared modules instead of local copies (previously re-defined here).
 import { SPEED_STEP, clampSpeed, formatSpeed } from '@/src/shared/speed';
 import { normalizeAvatarUrl, type ChannelInfo } from '@/src/shared/video';
+import { LICENSE_NAME, LICENSE_URL, SOURCE_REPO_URL } from '@/src/shared/about';
 import { t } from '@/src/shared/i18n';
 
 const fetchCurrentChannel = async (): Promise<ChannelInfo | null> => {
@@ -434,6 +435,16 @@ function App() {
         <span className="options-button__icon" aria-hidden="true" />
         {t('moreOptions')}
       </button>
+
+      {/* One quiet open-source line: repo + license (the header already links
+          the author). Constants come from the shared about module. */}
+      <footer className="oss-line">
+        <a href={SOURCE_REPO_URL} target="_blank" rel="noreferrer">
+          {t('openSourceRepo')}
+        </a>
+        <span aria-hidden="true">·</span>
+        <a href={LICENSE_URL} target="_blank" rel="noreferrer">{LICENSE_NAME}</a>
+      </footer>
     </div>
   );
 }

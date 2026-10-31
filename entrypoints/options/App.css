@@ -456,3 +456,41 @@
     justify-self: start;
   }
 }
+
+.oss {
+  background: #2b2d31;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.oss__title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.oss__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 18px;
+  font-size: 13px;
+}
+
+.oss__link {
+  color: #3ea6ff;
+  text-decoration: none;
+}
+
+.oss__link:hover {
+  text-decoration: underline;
+}
+
+.oss__version {
+  margin-left: auto;
+  color: #b0b0b0;
+  font-size: 12px;
+}

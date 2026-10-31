@@ -30,6 +30,13 @@ import {
 // modules instead of local copies (previously re-defined here).
 import { SPEED_STEP, clampSpeed, formatSpeed } from '@/src/shared/speed';
 import { normalizeAvatarUrl } from '@/src/shared/video';
+import {
+  FEEDBACK_URL,
+  LICENSE_NAME,
+  LICENSE_URL,
+  SOURCE_REPO_URL,
+  getAppVersion,
+} from '@/src/shared/about';
 
 // D-11: the table search filters client-side; typing updates the input at
 // full speed while the (200-row-max, D-4) table re-renders once the typing
@@ -489,6 +496,7 @@ function App() {
 
   const defaultSpeed = config?.global.defaultSpeed ?? 1;
   const preferredQuality = config?.global.preferredQuality ?? 'auto';
+  const appVersion = getAppVersion();
 
   return (
     <div className="options">
@@ -781,6 +789,25 @@ function App() {
         <button type="button" className="transfer__button" onClick={handleImportClick}>
           {t('import')}
         </button>
+      </section>
+
+      {/* Open-source identity: repo, feedback channel and license, one row of
+          quiet links so the page stays tool-first. Version comes from the
+          packaged manifest (null outside the extension runtime). */}
+      <section className="oss" aria-label={t('openSourceTitle')}>
+        <div className="oss__title">{t('openSourceTitle')}</div>
+        <div className="oss__links">
+          <a className="oss__link" href={SOURCE_REPO_URL} target="_blank" rel="noreferrer">
+            {t('openSourceRepo')}
+          </a>
+          <a className="oss__link" href={FEEDBACK_URL} target="_blank" rel="noreferrer">
+            {t('openSourceFeedback')}
+          </a>
+          <a className="oss__link" href={LICENSE_URL} target="_blank" rel="noreferrer">
+            {t('openSourceLicense')} · {LICENSE_NAME}
+          </a>
+          {appVersion && <span className="oss__version">v{appVersion}</span>}
+        </div>
       </section>
     </div>
   );
