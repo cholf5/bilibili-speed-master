@@ -10,6 +10,7 @@
 - 
 
 ## In Review
+- F-3 上架素材与提审 SOP（四张商店截图：popup 品牌板合成 = 真实构建产物 + mock chrome API、options/视频页/快捷键卡 = 真实扩展 + CDP 播种存储 + 真实 B 站视频页（角标 1.5x 实拍，弹幕关/语言钉扎 zh-CN）；成品规格 icon-128 / promo-440x280 / 1280x800×4 / 640x400（imaging.py compose+overlay 压印文案）；listing 文案（CWS ≤132 字符 + AMO ≤250 字符 + 隐私单句途 + 审核备注）store-assets/listing/listing.md；零依赖提审脚本 submit-chrome.mjs（CWS REST，publish 默认 trustedTesters）+ submit-firefox.mjs（AMO JWT + 自动轮询校验 + 附源码包），均经缺凭证报错 / JWT 伪造 401 / AMO 直连 200 实测；SOP store-assets/SOP.md：账号注册、OAuth refresh token 获取步骤、提审自检清单、过审回填、风险预案；已实测 googleapis.com 需代理（SOP 已写 NODE_USE_ENV_PROXY 用法），AMO 直连可达；待用户提供双方账号凭证后按 SOP §3 执行提审）（P1）
 - F-2 上架前合规整改（AMO data_collection_permissions + widget 图标 createElementNS 去 innerHTML + sources zip 排除 design/；web-ext lint 0 errors、本仓代码 UNSAFE 归零，204 例单测 + compile + 双端构建通过；待真机 TC4 齿轮图标视觉回归）（P1）
 - F-1 UI 重设计：品牌色换 B 站粉 #fb7299 + token 化 shared-ui.css + popup 频道卡 hero 化（大号速率/状态 pill/评分降页脚）+ 快捷键 7 组分组与键帽 kbd + 字体本地打包（public/fonts 48KB）+ 全局 focus-visible/reduced-motion + RATE_URL 条件评分 + 频道删除确认 + 速度单位统一 x（i18n 8 key × 18 locale；compile + 219 例单测 + 双端构建 + mock 页截图验证；待真机 TC1-TC4）（P2）
 - E-1 popup/options 展示开源信息（GitHub 仓库 / Issues 反馈 / MPL-2.0 / manifest 版本号；about 常量收敛 src/shared/about.ts × 6 例单测，18 locale 同步；compile + 219 例单测 + 双端构建通过；待真机验收 TC2-TC4）（P3）
