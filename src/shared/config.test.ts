@@ -11,6 +11,7 @@ import {
   mergeConfig,
   removeChannelOverride,
   sanitizeChannels,
+  UI_LANGUAGE_VALUES,
 } from '@/src/shared/config';
 import type { ChannelOverride, SpeedMasterConfig } from '@/src/shared/config';
 
@@ -310,6 +311,7 @@ describe('mergeConfig', () => {
       preferredQuality: '1080p',
       showVideoWidget: false,
       videoWidgetPosition: 'topRight',
+      uiLanguage: 'auto',
       // D-9: shortcuts absent from the raw global fall back to the defaults.
       shortcuts: DEFAULT_CONFIG.global.shortcuts,
     });
@@ -351,6 +353,24 @@ describe('mergeConfig', () => {
       });
       expect(merged.global.shortcuts.togglePlay).toEqual({ code: 'KeyK', key: 'k' });
       expect('turboMode' in merged.global.shortcuts).toBe(false);
+    });
+  });
+
+  // D-18: global.uiLanguage merge compatibility. The value list itself lives
+  // in src/shared/i18n.ts; here we verify the config-schema wiring.
+  describe('global.uiLanguage (D-18)', () => {
+    it('fills auto for old data without a uiLanguage field (TC4)', () => {
+      const merged = mergeConfig({ global: { defaultSpeed: 1.5 } });
+      expect(merged.global.uiLanguage).toBe('auto');
+    });
+
+    it('keeps every supported value and drops unknown ones', () => {
+      for (const value of UI_LANGUAGE_VALUES) {
+        const merged = mergeConfig({ global: { uiLanguage: value } });
+        expect(merged.global.uiLanguage).toBe(value);
+      }
+      expect(mergeConfig({ global: { uiLanguage: 'fr' } }).global.uiLanguage).toBe('auto');
+      expect(mergeConfig({ global: { uiLanguage: 42 } }).global.uiLanguage).toBe('auto');
     });
   });
 

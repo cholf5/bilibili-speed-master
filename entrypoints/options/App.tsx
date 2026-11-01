@@ -14,7 +14,7 @@ import {
   type SpeedMasterConfig,
 } from '@/src/shared/config';
 import { STATS_STORAGE_KEY, getSavedStats, updateSavedStats } from '@/src/shared/stats';
-import { t } from '@/src/shared/i18n';
+import { setUiLocale, t, UI_LANGUAGE_VALUES, type MessageKey, type UiLanguage } from '@/src/shared/i18n';
 import { RATE_URL } from '@/src/shared/about';
 import {
   SHORTCUT_ACTION_ORDER,
@@ -51,6 +51,16 @@ const QUALITY_OPTIONS = [
   { value: '480p', label: '480p' },
   { value: '360p', label: '360p' },
 ];
+
+// D-18: option labels follow the current locale (t() re-resolves on every
+// render), while non-auto values show their own native name so users can
+// recognize their language even under a mismatched browser setting.
+const UI_LANGUAGE_LABEL_KEYS: Record<UiLanguage, MessageKey> = {
+  auto: 'uiLanguageAuto',
+  en: 'uiLanguageEn',
+  'zh-CN': 'uiLanguageZhCn',
+  'zh-TW': 'uiLanguageZhTw',
+};
 
 // D-11: client-side channel filter for the table above (pure, exported for
 // unit tests like formatTimestamp). Matches when the keyword (trimmed,
@@ -241,7 +251,13 @@ function App() {
   }, [searchQuery]);
 
   useEffect(() => {
-    getConfig().then(setConfig);
+    // D-18: hydrate the module locale in the same callback as the config
+    // state so the first post-load render already uses the stored language.
+    // Until then labels render with the browser locale (the 'auto' behavior).
+    getConfig().then((loaded) => {
+      setUiLocale(loaded.global.uiLanguage);
+      setConfig(loaded);
+    });
     // D-1: stats live in storage.local, not in the sync config.
     void getSavedStats().then((stats) => setTimeSavedSeconds(stats.timeSavedSeconds));
   }, []);
@@ -408,6 +424,14 @@ function App() {
     if (event.target.value === 'topLeft' || event.target.value === 'topRight') {
       void updateGlobal({ videoWidgetPosition: event.target.value });
     }
+  };
+
+  // D-18: the module-level locale takes effect immediately (this render),
+  // then the write fans out through storage.onChanged to other surfaces.
+  const handleUiLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = event.target.value as UiLanguage;
+    setUiLocale(value);
+    void updateGlobal({ uiLanguage: value });
   };
 
   // D-9: shortcut remapping writes through the shared updateConfig channel
@@ -676,6 +700,20 @@ function App() {
               <option value="topRight">Top right</option>
             </select>
           </div>
+        </div>
+        <div className="card">
+          <div className="card__label">{t('uiLanguage')}</div>
+          <select
+            className="select"
+            value={config?.global.uiLanguage ?? 'auto'}
+            onChange={handleUiLanguageChange}
+          >
+            {UI_LANGUAGE_VALUES.map((value) => (
+              <option key={value} value={value}>
+                {t(UI_LANGUAGE_LABEL_KEYS[value])}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
 

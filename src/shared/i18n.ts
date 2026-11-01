@@ -78,7 +78,15 @@ const en: Messages = {
   openSourceFeedback: 'Feedback & Issues',
   openSourceLicense: 'License',
   channelDeleteConfirm: 'Remove the speed override for this channel?',
+  uiLanguage: 'Language',
+  uiLanguageAuto: 'Auto (browser language)',
+  uiLanguageEn: 'English',
+  uiLanguageZhCn: '简体中文',
+  uiLanguageZhTw: '繁體中文',
 };
+
+// UI-facing key type: t() accepts exactly the keys of the en dictionary.
+export type MessageKey = keyof typeof en;
 
 const zhCN: Messages = {
   appTitle: '哔哩哔哩倍速大师',
@@ -153,6 +161,11 @@ const zhCN: Messages = {
   openSourceFeedback: '反馈与问题',
   openSourceLicense: '许可证',
   channelDeleteConfirm: '确定移除该频道的倍速覆盖设置吗？',
+  uiLanguage: '界面语言',
+  uiLanguageAuto: '自动（跟随浏览器）',
+  uiLanguageEn: 'English',
+  uiLanguageZhCn: '简体中文',
+  uiLanguageZhTw: '繁體中文',
 };
 
 const zhTW: Messages = {
@@ -228,20 +241,31 @@ const zhTW: Messages = {
   openSourceFeedback: '回報與問題',
   openSourceLicense: '授權條款',
   channelDeleteConfirm: '確定要移除該頻道的倍速覆寫設定嗎？',
+  uiLanguage: '介面語言',
+  uiLanguageAuto: '自動（跟隨瀏覽器）',
+  uiLanguageEn: 'English',
+  uiLanguageZhCn: '简体中文',
+  uiLanguageZhTw: '繁體中文',
 };
 
 type Locale = 'en' | 'zh-CN' | 'zh-TW';
 
-// Exported for the locale key-set consistency test (D-15); `t` remains the
-// only consumer at runtime.
+// Exported for the locale key-set consistency test (D-15) and for the options
+// language selector; `t` remains the only consumer at runtime.
 export const messagesByLocale: Record<Locale, Messages> = {
   en,
   'zh-CN': zhCN,
   'zh-TW': zhTW,
 };
 
+// D-18: 'auto' is the sentinel stored in global.uiLanguage meaning "resolve
+// from navigator.language" (the pre-D-18 behavior). An explicit value pins
+// the UI language for every surface — popup, options and the video widget —
+// regardless of the browser setting.
+export type UiLanguage = 'auto' | Locale;
+export const UI_LANGUAGE_VALUES: readonly UiLanguage[] = ['auto', 'en', 'zh-CN', 'zh-TW'];
+
 const getBrowserLocale = (): Locale => {
-  const fallback: Locale = 'en';
   const lang =
     (globalThis as typeof globalThis & { navigator?: Navigator }).navigator?.language?.toLowerCase() ??
     'en';
@@ -252,11 +276,22 @@ const getBrowserLocale = (): Locale => {
   if (lang.startsWith('zh')) {
     return 'zh-CN';
   }
-  return fallback;
+  return 'en';
+};
+
+// Module-level override, kept in sync with global.uiLanguage by the UI
+// entrypoints (popup/options hydrate it after getConfig; the content script
+// mirrors it in applyWidgetSettings alongside the widget's own settings).
+let uiLocaleOverride: UiLanguage = 'auto';
+
+export const setUiLocale = (language: UiLanguage): void => {
+  if (UI_LANGUAGE_VALUES.includes(language)) {
+    uiLocaleOverride = language;
+  }
 };
 
 export const t = (key: keyof typeof en): string => {
-  const locale = getBrowserLocale();
+  const locale = uiLocaleOverride === 'auto' ? getBrowserLocale() : uiLocaleOverride;
   const messages = messagesByLocale[locale] ?? en;
   return messages[key] ?? en[key] ?? key;
 };

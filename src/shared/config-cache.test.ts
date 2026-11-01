@@ -33,6 +33,7 @@ const makeConfig = (overrides?: {
     preferredQuality: 'auto',
     showVideoWidget: true,
     videoWidgetPosition: 'topLeft',
+    uiLanguage: 'auto',
     shortcuts: DEFAULT_SHORTCUT_BINDINGS,
   },
   channels: overrides?.channels ?? {},
@@ -289,6 +290,7 @@ describe('createConfigCache', () => {
       preferredQuality: 'auto',
       showVideoWidget: true,
       videoWidgetPosition: 'topLeft',
+      uiLanguage: 'auto',
       // D-9: the raw global carries no shortcuts — mergeGlobalRaw fills the
       // default keymap exactly as a fresh read would.
       shortcuts: DEFAULT_SHORTCUT_BINDINGS,

@@ -13,7 +13,7 @@ import type { ContentContext } from '@/src/content/context';
 import { isManagedVideoPage } from '@/src/content/channel-detect';
 import { applyPlaybackRate } from '@/src/content/speed-core';
 import { SPEED_MAX, SPEED_MIN, formatWidgetSpeed } from '@/src/shared/speed';
-import { t } from '@/src/shared/i18n';
+import { setUiLocale, t } from '@/src/shared/i18n';
 
 export const WIDGET_CLASS = 'speed-master-widget';
 
@@ -226,11 +226,19 @@ export const setupWidget = (ctx: ContentContext): void => {
 
   const applyWidgetSettings = async () => {
     const config = await ctx.configCache.read();
+    // D-18: the module-level locale must mirror the stored uiLanguage before
+    // any label below re-resolves through t(); applyWidgetSettings runs at
+    // startup and on every sync-config onChanged, so language changes reach
+    // the widget without a page reload.
+    setUiLocale(config.global.uiLanguage);
     speedWidgetRoot.classList.toggle('smw--off', !config.global.showVideoWidget);
     speedWidgetRoot.classList.toggle(
       'smw--left',
       config.global.videoWidgetPosition === 'topLeft',
     );
+    speedWidgetGear.setAttribute('aria-label', t('widgetOpenSettings'));
+    speedWidgetMinus.setAttribute('aria-label', t('widgetDecreaseSpeed'));
+    speedWidgetPlus.setAttribute('aria-label', t('widgetIncreaseSpeed'));
   };
 
   ctx.updateSpeedWidget = updateSpeedWidget;

@@ -19,7 +19,7 @@ import { STATS_STORAGE_KEY, getSavedStats } from '@/src/shared/stats';
 import { SPEED_STEP, clampSpeed, formatSpeed } from '@/src/shared/speed';
 import { normalizeAvatarUrl, type ChannelInfo } from '@/src/shared/video';
 import { LICENSE_NAME, LICENSE_URL, RATE_URL, SOURCE_REPO_URL } from '@/src/shared/about';
-import { t } from '@/src/shared/i18n';
+import { setUiLocale, t } from '@/src/shared/i18n';
 
 // Same gear glyph as the on-player widget, one icon shape across surfaces.
 const GEAR_SVG = (
@@ -68,7 +68,12 @@ function App() {
   const portRef = useRef<any>(null);
 
   useEffect(() => {
-    getConfig().then(setConfig);
+    // D-18: hydrate the module locale with the first config read so popup
+    // strings follow the stored UI language.
+    getConfig().then((loaded) => {
+      setUiLocale(loaded.global.uiLanguage);
+      setConfig(loaded);
+    });
     // D-1: stats live in storage.local, not in the sync config.
     void getSavedStats().then((stats) => setTimeSavedSeconds(stats.timeSavedSeconds));
     void fetchCurrentChannel().then(setChannel);
@@ -90,7 +95,12 @@ function App() {
         areaName === 'sync' &&
         (changes?.[GLOBAL_STORAGE_KEY] || changes?.[CHANNELS_STORAGE_KEY])
       ) {
-        void getConfig().then(setConfig);
+        // D-18: keep the module locale in sync when another surface (the
+        // options page) changes the UI language while this popup is open.
+        void getConfig().then((loaded) => {
+          setUiLocale(loaded.global.uiLanguage);
+          setConfig(loaded);
+        });
       }
     };
     api.addListener(listener);

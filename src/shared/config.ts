@@ -15,6 +15,9 @@ import {
   type ShortcutBindings,
 } from '@/src/shared/shortcuts';
 import { SPEED_MAX, SPEED_MIN } from '@/src/shared/speed';
+import { UI_LANGUAGE_VALUES, type UiLanguage } from '@/src/shared/i18n';
+
+export { UI_LANGUAGE_VALUES };
 
 export type { ShortcutActionId, ShortcutBinding, ShortcutBindings };
 
@@ -33,6 +36,9 @@ export type SpeedMasterConfig = {
     preferredQuality: string;
     showVideoWidget: boolean;
     videoWidgetPosition: 'topLeft' | 'topRight';
+    // D-18: 'auto' resolves the UI language from navigator.language; an
+    // explicit value pins the language for every surface.
+    uiLanguage: UiLanguage;
     shortcuts: ShortcutBindings;
   };
   channels: Record<string, ChannelOverride>;
@@ -60,6 +66,7 @@ export const DEFAULT_CONFIG: SpeedMasterConfig = {
     preferredQuality: 'auto',
     showVideoWidget: true,
     videoWidgetPosition: 'topLeft',
+    uiLanguage: 'auto',
     // D-9: the pre-D-9 hard-coded keymap (see DEFAULT_SHORTCUT_ACTIONS for
     // the action-by-action mirror of the old handleKeydown chain).
     shortcuts: DEFAULT_SHORTCUT_BINDINGS,
@@ -212,6 +219,13 @@ export const removeChannelOverride = (
 // the same per-section merging for the split keys' values. mergeGlobalRaw is
 // additionally exported for the content-side config cache (D-6), which applies
 // storage.onChanged patches with the exact same semantics as a fresh read.
+// D-18: unknown or invalid values degrade to 'auto' — an imported file or
+// a newer schema version must never pin the UI to a nonexistent locale.
+const mergeUiLanguage = (raw: unknown): UiLanguage =>
+  typeof raw === 'string' && (UI_LANGUAGE_VALUES as readonly string[]).includes(raw)
+    ? (raw as UiLanguage)
+    : DEFAULT_CONFIG.global.uiLanguage;
+
 export const mergeGlobalRaw = (raw: any): SpeedMasterConfig['global'] => {
   const global = raw && typeof raw === 'object' ? raw : {};
   return {
@@ -231,6 +245,7 @@ export const mergeGlobalRaw = (raw: any): SpeedMasterConfig['global'] => {
       global.videoWidgetPosition === 'topLeft' || global.videoWidgetPosition === 'topRight'
         ? global.videoWidgetPosition
         : DEFAULT_CONFIG.global.videoWidgetPosition,
+    uiLanguage: mergeUiLanguage(global.uiLanguage),
     // D-9: absent on pre-shortcuts data → the full default table; per-action
     // holes, invalid entries and unknown action ids are repaired/dropped by
     // sanitizeShortcuts, and null stays null (disabled).
