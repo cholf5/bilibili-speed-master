@@ -87,6 +87,15 @@ async function evalInPage(cdp, expression) {
   return res.result?.value;
 }
 
+async function pinLocale(cdp, locale = 'zh-CN') {
+  // --lang is unreliable on macOS Chromium; pin navigator.language before
+  // any page script runs so the UI i18n deterministically picks zh-CN.
+  await cdp.send('Page.addScriptToEvaluateOnNewDocument', {
+    source: `Object.defineProperty(navigator, 'language', { get: () => '${locale}', configurable: true });
+Object.defineProperty(navigator, 'languages', { get: () => ['${locale}'], configurable: true });`,
+  });
+}
+
 async function shoot(cdp, path, clip) {
   const params = { format: 'png' };
   if (clip) params.clip = { ...clip, scale: 1 };
@@ -223,9 +232,11 @@ const main = async () => {
       boardCdp,
       `(() => {
         const f = document.querySelector('iframe');
-        return f && f.contentDocument?.querySelector('#root')?.childElementCount > 0
-          ? 'popup rendered: ' + f.contentDocument.querySelector('#root').childElementCount + ' nodes'
-          : 'popup NOT rendered';
+        const root = f?.contentDocument?.querySelector('#root');
+        if (!root || root.childElementCount === 0) return 'popup NOT rendered';
+        // shrink the stage to the popup's real height (no dead space below)
+        f.style.height = root.scrollHeight + 'px';
+        return 'popup rendered, h=' + root.scrollHeight;
       })()`,
     );
     console.log('board:', frameOk);
@@ -240,9 +251,11 @@ const main = async () => {
     const optCdp = new CDP((await targetList()).find((t) => t.id === optTarget).webSocketDebuggerUrl);
     await optCdp.open;
     await optCdp.send('Page.enable');
+    await pinLocale(optCdp);
+    await optCdp.send('Page.reload');
     await optCdp.send('Emulation.setDeviceMetricsOverride', {
       width: 1280,
-      height: 960,
+      height: 1000,
       deviceScaleFactor: 2,
       mobile: false,
     });
